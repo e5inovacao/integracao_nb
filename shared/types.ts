@@ -65,6 +65,13 @@ export interface Product {
   // Variações de cores com suas imagens
   colorVariations?: ColorVariation[];
   primaryColor?: string;
+  // Dimensões físicas
+  dimensions?: {
+    height?: number;
+    width?: number;
+    length?: number;
+    weight?: number;
+  };
 }
 
 export interface CartItem {

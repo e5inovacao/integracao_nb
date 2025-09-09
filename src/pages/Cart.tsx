@@ -6,7 +6,7 @@ import Card from '../components/Card';
 import Badge from '../components/Badge';
 import SuccessPopup from '../components/SuccessPopup';
 import { useCartStore } from '../store/cartStore';
-import { createQuoteRequest, checkPhoneExists, checkEmailExists } from '../services/quotesService';
+import { createQuoteRequest, checkPhoneExists, checkEmailExists, processQuoteRequest, QuoteRequestData } from '../services/quotesService';
 
 
 

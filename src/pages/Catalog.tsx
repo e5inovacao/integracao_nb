@@ -748,7 +748,7 @@ export default function Catalog() {
                       {currentPage > 3 && (
                         <>
                           <Button
-                            variant={1 === currentPage ? "default" : "outline"}
+                            variant={1 === currentPage ? "primary" : "outline"}
                             size="sm"
                             onClick={() => handlePageChange(1)}
                              disabled={catalogState.loading || isPageChanging}
@@ -782,7 +782,7 @@ export default function Catalog() {
                         return (
                           <Button
                             key={pageNum}
-                            variant={pageNum === currentPage ? "default" : "outline"}
+                            variant={pageNum === currentPage ? "primary" : "outline"}
                             size="sm"
                             onClick={() => handlePageChange(pageNum)}
                              disabled={catalogState.loading || isPageChanging}
@@ -800,7 +800,7 @@ export default function Catalog() {
                             <span className="px-2 text-gray-500">...</span>
                           )}
                           <Button
-                            variant={catalogState.totalPages === currentPage ? "default" : "outline"}
+                            variant={catalogState.totalPages === currentPage ? "primary" : "outline"}
                             size="sm"
                             onClick={() => handlePageChange(catalogState.totalPages)}
                              disabled={catalogState.loading || isPageChanging}

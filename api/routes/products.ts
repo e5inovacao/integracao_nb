@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { Product, PaginatedResponse } from '../../shared/types.js';
+import { Product, PaginatedResponse, ApiResponse, ProductCategory, SustainabilityFeature } from '../../shared/types.js';
 import { supabaseAdmin } from '../../supabase/server.js';
 
 const router = express.Router();
@@ -48,9 +48,31 @@ function mapEcologicToProduct(data: any): Product & {
   }
 
   // Processar categorias
-  let category = 'ecologico';
+  let category: ProductCategory = 'ecologicos';
   if (data.categoria) {
-    category = data.categoria.toString() || 'ecologico';
+    const categoryStr = data.categoria.toString().toLowerCase();
+    // Mapear categorias para os tipos válidos
+    switch (categoryStr) {
+      case 'papelaria':
+        category = 'papelaria';
+        break;
+      case 'casa-escritorio':
+      case 'casa':
+      case 'escritorio':
+        category = 'casa-escritorio';
+        break;
+      case 'acessorios':
+        category = 'acessorios';
+        break;
+      case 'tecnologia':
+        category = 'tecnologia';
+        break;
+      case 'textil':
+        category = 'textil';
+        break;
+      default:
+        category = 'ecologicos';
+    }
   }
 
   // Processar preço
@@ -71,7 +93,7 @@ function mapEcologicToProduct(data: any): Product & {
     description: data.descricao || 'Produto sem descrição disponível',
     category: category,
     images: images,
-    sustainabilityFeatures: ['Produto Ecológico'],
+    sustainabilityFeatures: ['sustentavel'] as SustainabilityFeature[],
     customizationOptions: [], // Não há campo específico para variações na nova estrutura
     price: price,
     inStock: inStock,

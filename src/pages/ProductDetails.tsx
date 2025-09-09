@@ -41,15 +41,15 @@ export default function ProductDetails() {
       setLoadingSuggested(true);
       const response = await productsApi.getProducts();
       
-      if (response.success && response.data && response.data.data) {
+      if (response.success && response.data && response.data.items) {
         // Filtrar produtos da mesma categoria, excluindo o produto atual
-        const suggested = response.data.data
+        const suggested = response.data.items
           .filter(p => p.id !== currentProduct.id && p.category === currentProduct.category)
           .slice(0, 8); // Limitar a 8 produtos sugeridos
         
         // Se não houver produtos suficientes da mesma categoria, adicionar outros produtos
         if (suggested.length < 8) {
-          const otherProducts = response.data.data
+          const otherProducts = response.data.items
             .filter(p => p.id !== currentProduct.id && p.category !== currentProduct.category)
             .slice(0, 8 - suggested.length);
           suggested.push(...otherProducts);
@@ -544,10 +544,10 @@ export default function ProductDetails() {
                   <Badge variant="primary">Produto em Destaque</Badge>
                 )}
 
-                {product.category === 'Produtos Asia' && (
+                {product.category === 'tecnologia' && (
                   <Badge variant="secondary" className="flex items-center gap-1">
                     <Package className="w-3 h-3" />
-                    Produto Importado Ásia
+                    Produto Tecnológico
                   </Badge>
                 )}
 
@@ -897,8 +897,8 @@ export default function ProductDetails() {
               </Card>
             )}
 
-            {/* Características de Produtos da Ásia */}
-            {product.category === 'Produtos Asia' && (
+            {/* Características de Produtos Tecnológicos */}
+            {product.category === 'tecnologia' && (
               <Card>
                 <Card.Content className="p-4">
                   <div className="flex items-center gap-2 mb-3">
@@ -907,7 +907,7 @@ export default function ProductDetails() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Badge variant="secondary">
-                      Produto Importado
+                      Produto Tecnológico
                     </Badge>
                     <Badge variant="secondary">
                       Alta Qualidade
