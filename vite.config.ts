@@ -24,6 +24,23 @@ export default defineConfig({
     }), 
     tsconfigPaths(),
   ],
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separar React e bibliotecas relacionadas
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          // Separar bibliotecas de UI
+          'ui-vendor': ['lucide-react', 'react-slick', 'slick-carousel'],
+          // Separar bibliotecas de utilitários
+          'utils-vendor': ['zustand', 'clsx', 'tailwind-merge'],
+          // Separar bibliotecas de dados/API
+          'data-vendor': ['@supabase/supabase-js', 'axios']
+        }
+      }
+    }
+  },
   server: {
     port: 5175,
     proxy: {
