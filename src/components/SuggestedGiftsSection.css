@@ -1,0 +1,42 @@
+.suggested-gifts-slider .slick-prev,
+.suggested-gifts-slider .slick-next {
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  background: rgba(34, 197, 94, 0.9) !important;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.suggested-gifts-slider .slick-prev:hover,
+.suggested-gifts-slider .slick-next:hover {
+  background: rgba(34, 197, 94, 1) !important;
+  transform: scale(1.1);
+}
+
+.suggested-gifts-slider .slick-prev {
+  left: -20px;
+}
+
+.suggested-gifts-slider .slick-next {
+  right: -20px;
+}
+
+.suggested-gifts-slider .slick-prev:before,
+.suggested-gifts-slider .slick-next:before {
+  font-size: 18px;
+  color: white;
+}
+
+.suggested-gifts-slider .slick-dots {
+  bottom: -40px;
+}
+
+.suggested-gifts-slider .slick-dots li button:before {
+  color: #22c55e;
+  font-size: 12px;
+}
+
+.suggested-gifts-slider .slick-dots li.slick-active button:before {
+  color: #16a34a;
+}

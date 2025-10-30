@@ -45,6 +45,11 @@ export default function Layout() {
   const location = useLocation()
   const { user, signOut } = useAuth()
   const [dropdownOpen, setDropdownOpen] = React.useState<string | null>(null)
+  
+  // DEBUG: Log quando o estado do dropdown muda
+  React.useEffect(() => {
+    console.log('🔍 DEBUG: Estado dropdownOpen mudou para:', dropdownOpen);
+  }, [dropdownOpen])
   const [userDropdownOpen, setUserDropdownOpen] = React.useState(false)
   const [isMenuVisible, setIsMenuVisible] = React.useState(true)
   const [lastScrollY, setLastScrollY] = React.useState(0)
@@ -174,7 +179,14 @@ export default function Layout() {
                     {item.children ? (
                       <div className="menu-dropdown">
                         <button
-                          onClick={() => setDropdownOpen(dropdownOpen === item.name ? null : item.name)}
+                          onClick={() => {
+                            console.log('🔍 DEBUG: Botão clicado!', { 
+                              itemName: item.name, 
+                              currentDropdownOpen: dropdownOpen,
+                              willSetTo: dropdownOpen === item.name ? null : item.name
+                            });
+                            setDropdownOpen(dropdownOpen === item.name ? null : item.name);
+                          }}
                           className={`flex items-center px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                             isActive 
                               ? 'bg-menu-green text-white shadow-lg' 
