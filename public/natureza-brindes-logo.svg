@@ -1,0 +1,19 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fundo circular verde -->
+  <circle cx="60" cy="60" r="58" fill="#16a34a" stroke="#15803d" stroke-width="2"/>
+  
+  <!-- Folha principal -->
+  <path d="M35 60 Q45 35, 60 45 Q75 35, 85 60 Q75 85, 60 75 Q45 85, 35 60 Z" fill="#22c55e"/>
+  
+  <!-- Nervura central da folha -->
+  <path d="M60 45 L60 75" stroke="#15803d" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Nervuras laterais -->
+  <path d="M50 55 Q55 50, 60 55" stroke="#15803d" stroke-width="1" stroke-linecap="round"/>
+  <path d="M70 55 Q65 50, 60 55" stroke="#15803d" stroke-width="1" stroke-linecap="round"/>
+  <path d="M50 65 Q55 70, 60 65" stroke="#15803d" stroke-width="1" stroke-linecap="round"/>
+  <path d="M70 65 Q65 70, 60 65" stroke="#15803d" stroke-width="1" stroke-linecap="round"/>
+  
+  <!-- Texto "NB" -->
+  <text x="60" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">NB</text>
+</svg>

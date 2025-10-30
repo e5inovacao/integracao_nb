@@ -1,0 +1,742 @@
+/* Estilos específicos para impressão */
+@media print {
+  /* Reset básico para impressão */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Layout geral */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    color: #000 !important;
+    background: white !important;
+  }
+
+  /* Container principal */
+  .print\:p-0 {
+    padding: 0 !important;
+  }
+
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+
+  .print\:max-w-none {
+    max-width: none !important;
+  }
+
+  /* Ocultar elementos não necessários na impressão */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Faixas verdes no topo e rodapé da impressão */
+  .print-green-band-top::before {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 15px;
+    background-color: #22c55e !important;
+    margin-bottom: 20px;
+    position: relative;
+    top: 0;
+  }
+
+  .print-green-band-bottom::after {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 15px;
+    background-color: #22c55e !important;
+    margin-top: 20px;
+    position: relative;
+    bottom: 0;
+  }
+
+  /* Ocultar cabeçalho e rodapé do navegador na impressão */
+  @page {
+    margin: 0.5in;
+    size: A4;
+    /* Remove cabeçalho e rodapé padrão do navegador */
+    @top-left { content: ""; }
+    @top-center { content: ""; }
+    @top-right { content: ""; }
+    @bottom-left { content: ""; }
+    @bottom-center { content: ""; }
+    @bottom-right { content: ""; }
+  }
+
+  /* Ocultar elementos específicos que aparecem na impressão */
+  header,
+  nav,
+  .no-print,
+  [data-testid="header"],
+  [data-testid="footer"] {
+    display: none !important;
+  }
+
+  /* Força remoção de qualquer conteúdo de cabeçalho/rodapé */
+  html {
+    -webkit-print-color-adjust: exact;
+  }
+  
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Cabeçalho da proposta */
+  .text-center.border-b {
+    border-bottom: 2px solid #000 !important;
+    margin-bottom: 20px !important;
+    padding-bottom: 15px !important;
+  }
+
+  /* Títulos principais */
+  h1, h2 {
+    color: #000 !important;
+    font-weight: bold !important;
+    margin-bottom: 10px !important;
+  }
+
+  h1 {
+    font-size: 18px !important;
+  }
+
+  h2 {
+    font-size: 16px !important;
+  }
+
+  /* Grid de dados do cliente e empresa */
+  .grid.grid-cols-1.md\:grid-cols-2 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 30px !important;
+    margin-bottom: 25px !important;
+  }
+
+  /* Seções de dados */
+  .space-y-2 > * + * {
+    margin-top: 8px !important;
+  }
+
+  /* Produtos */
+  .mb-6.border-b {
+    margin-bottom: 20px !important;
+    border-bottom: 1px solid #ccc !important;
+    padding-bottom: 15px !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Cabeçalho do item */
+  .bg-blue-600 {
+    background-color: #2563eb !important;
+    color: white !important;
+    padding: 8px 16px !important;
+    font-weight: bold !important;
+    margin-bottom: 15px !important;
+  }
+
+  /* Layout do produto */
+  .flex.gap-6 {
+    display: flex !important;
+    gap: 20px !important;
+    align-items: flex-start !important;
+  }
+
+  /* Container da imagem */
+  .w-32.h-32, .sm\:w-40.sm\:h-40 {
+    width: 120px !important;
+    height: 120px !important;
+    flex-shrink: 0 !important;
+    border: 1px solid #ccc !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+  }
+
+  /* Imagens dos produtos */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+
+  /* Informações do produto */
+  .flex-1 {
+    flex: 1 !important;
+  }
+
+  .flex-1 h4 {
+    font-size: 14px !important;
+    font-weight: bold !important;
+    margin-bottom: 8px !important;
+    color: #000 !important;
+  }
+
+  .flex-1 p {
+    font-size: 11px !important;
+    margin-bottom: 5px !important;
+    color: #333 !important;
+  }
+
+  /* Tabela de preços */
+  .overflow-x-auto {
+    overflow: visible !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-bottom: 20px !important;
+    page-break-inside: avoid !important;
+  }
+
+  th, td {
+    border: 1px solid #000 !important;
+    padding: 8px !important;
+    text-align: center !important;
+    font-size: 11px !important;
+    vertical-align: middle !important;
+  }
+
+  th {
+    background-color: #f0f0f0 !important;
+    font-weight: bold !important;
+    color: #000 !important;
+  }
+
+  /* Linhas alternadas da tabela */
+  .bg-gray-50 {
+    background-color: #f9f9f9 !important;
+  }
+
+  /* Informações adicionais */
+  .space-y-4 > * + * {
+    margin-top: 12px !important;
+  }
+
+  .space-y-4 .flex {
+    display: flex !important;
+    align-items: flex-start !important;
+  }
+
+  .space-y-4 .flex span:first-child {
+    font-weight: bold !important;
+    min-width: 160px !important;
+    color: #000 !important;
+  }
+
+  .space-y-4 .flex span:last-child {
+    color: #333 !important;
+  }
+
+  /* Caixa de aviso */
+  .bg-yellow-100 {
+    background-color: #fef3c7 !important;
+    border-left: 4px solid #f59e0b !important;
+    padding: 15px !important;
+    margin: 20px 0 !important;
+  }
+
+  .bg-yellow-100 p {
+    text-align: center !important;
+    font-weight: 500 !important;
+    color: #000 !important;
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Rodapé */
+  .border-t {
+    border-top: 2px solid #000 !important;
+    padding-top: 20px !important;
+    margin-top: 25px !important;
+  }
+
+  .border-t .flex {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+  }
+
+  .border-t .text-sm {
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+  }
+
+  .border-t .font-bold {
+    font-weight: bold !important;
+    color: #000 !important;
+  }
+
+  /* Quebras de página */
+  .page-break-before {
+    page-break-before: always !important;
+  }
+
+  .page-break-after {
+    page-break-after: always !important;
+  }
+
+  .page-break-inside-avoid {
+    page-break-inside: avoid !important;
+  }
+
+  /* Ajustes específicos para elementos longos */
+  .space-y-8 > * {
+    page-break-inside: avoid !important;
+  }
+
+  /* Garantir que tabelas não quebrem mal */
+  tbody tr {
+    page-break-inside: avoid !important;
+  }
+
+  /* Ajustar margens da página */
+  @page {
+    margin: 1.5cm 1cm 1cm 1cm !important;
+    size: A4 !important;
+  }
+
+  /* Melhorias específicas para layout da proposta */
+  .max-w-4xl {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  /* Espaçamento entre seções */
+  .space-y-8 > * + * {
+    margin-top: 25px !important;
+  }
+
+  /* Cabeçalho da empresa - ajuste de layout */
+  .text-center.border-b h1 {
+    font-size: 20px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .text-center.border-b h2 {
+    font-size: 18px !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* Grid responsivo para dados */
+  .grid.gap-6 {
+    gap: 25px !important;
+  }
+
+  /* Melhor formatação para dados do cliente/empresa */
+  .space-y-2 p {
+    margin-bottom: 6px !important;
+    font-size: 12px !important;
+  }
+
+  .space-y-2 .font-semibold {
+    font-weight: bold !important;
+    display: inline-block !important;
+    min-width: 80px !important;
+  }
+
+  /* Ajustes para seção de produtos */
+  .mb-6.border-b:last-child {
+    border-bottom: none !important;
+  }
+
+  /* Container de imagem do produto - melhor posicionamento */
+  .flex.gap-6 > div:first-child {
+    margin-right: 15px !important;
+  }
+
+  /* Informações do produto - melhor espaçamento */
+  .flex-1 .font-bold {
+    font-size: 13px !important;
+    margin-bottom: 6px !important;
+  }
+
+  /* Tabela - melhor formatação */
+  table th {
+    font-size: 12px !important;
+    padding: 10px 8px !important;
+  }
+
+  table td {
+    font-size: 11px !important;
+    padding: 8px !important;
+  }
+
+  /* Informações adicionais - melhor alinhamento */
+  .space-y-4 .flex span:first-child {
+    min-width: 180px !important;
+    font-size: 12px !important;
+  }
+
+  .space-y-4 .flex span:last-child {
+    font-size: 12px !important;
+  }
+
+  /* Caixa de aviso - melhor visibilidade */
+  .bg-yellow-100 {
+    border: 1px solid #f59e0b !important;
+    border-radius: 4px !important;
+  }
+
+  /* Rodapé - melhor distribuição */
+  .border-t .flex > div {
+    flex: 1 !important;
+  }
+
+  .border-t .text-right {
+    text-align: right !important;
+  }
+
+  /* Evitar quebras indesejadas */
+  .grid.grid-cols-1.md\:grid-cols-2 > div {
+    page-break-inside: avoid !important;
+  }
+
+  /* Melhor controle de quebras de página */
+  .space-y-8 > div:nth-child(3) {
+    page-break-before: avoid !important;
+  }
+
+  /* Garantir que tabela não quebre mal */
+  table {
+    page-break-before: avoid !important;
+  }
+
+  /* Ajuste para elementos flex */
+  .flex {
+    display: flex !important;
+  }
+
+  .flex-1 {
+    flex: 1 !important;
+  }
+
+  .flex-shrink-0 {
+    flex-shrink: 0 !important;
+  }
+
+  /* Cores de fundo para impressão */
+  .bg-blue-600 {
+    background-color: #2563eb !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .bg-gray-200 {
+    background-color: #e5e7eb !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .bg-gray-50 {
+    background-color: #f9fafb !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .bg-yellow-100 {
+    background-color: #fef3c7 !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  /* Cores específicas para impressão */
+  .text-blue-600 {
+    color: #2563eb !important;
+  }
+
+  .text-gray-800 {
+    color: #1f2937 !important;
+  }
+
+  .text-gray-600 {
+    color: #4b5563 !important;
+  }
+
+  .text-gray-500 {
+    color: #6b7280 !important;
+  }
+
+  /* Ajustes finais */
+  .min-h-screen {
+    min-height: auto !important;
+  }
+
+  .bg-gray-50 {
+    background: white !important;
+  }
+
+  .bg-white {
+    background: white !important;
+  }
+}
+
+/* Estilos para visualização em tela que simulam impressão */
+@media screen {
+  .print-preview {
+    background: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    max-width: 21cm;
+    margin: 0 auto;
+    padding: 1.5cm 1cm 1cm 1cm;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .print-preview .print\:hidden {
+    display: none;
+  }
+
+  .print-preview .print\:p-0 {
+    padding: 0;
+  }
+
+  .print-preview .print\:shadow-none {
+    box-shadow: none;
+  }
+
+  .print-preview .print\:max-w-none {
+    max-width: none;
+  }
+}
+
+/* Reset básico para impressão */
+@media print {
+  /* Reset básico para impressão */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Layout geral */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Container principal */
+  .min-h-screen {
+    min-height: auto !important;
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .max-w-4xl {
+    max-width: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Configurações de página */
+  @page {
+    margin: 10mm !important;
+    size: A4 !important;
+  }
+
+  /* Ocultar elementos não necessários na impressão */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ocultar campo Representante na impressão */
+  .print-hide-representante {
+    display: none !important;
+  }
+
+  /* Faixas verdes decorativas */
+  .print-green-band-top::before {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 8px;
+    background: #2CB20B;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+  }
+
+  .print-green-band-bottom::after {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 8px;
+    background: #2CB20B;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+  }
+
+  /* Otimização de espaçamento */
+  .p-8 {
+    padding: 15px !important;
+  }
+
+  .p-6 {
+    padding: 10px !important;
+  }
+
+  .p-4 {
+    padding: 8px !important;
+  }
+
+  .mb-8 {
+    margin-bottom: 15px !important;
+  }
+
+  .mb-6 {
+    margin-bottom: 12px !important;
+  }
+
+  .mb-4 {
+    margin-bottom: 10px !important;
+  }
+
+  .mb-2 {
+    margin-bottom: 6px !important;
+  }
+
+  .mt-4 {
+    margin-top: 10px !important;
+  }
+
+  .mt-2 {
+    margin-top: 6px !important;
+  }
+
+  /* Otimização de gaps */
+  .gap-8 {
+    gap: 15px !important;
+  }
+
+  .gap-6 {
+    gap: 12px !important;
+  }
+
+  .gap-4 {
+    gap: 10px !important;
+  }
+
+  /* Cabeçalho da empresa - compacto */
+  .border-b {
+    border-bottom: 1px solid #e5e7eb !important;
+    padding-bottom: 15px !important;
+    margin-bottom: 15px !important;
+  }
+
+  /* Seções de informações - layout otimizado */
+  .print-two-columns {
+    display: flex !important;
+    gap: 20px !important;
+    margin-bottom: 15px !important;
+  }
+
+  .print-two-columns > div {
+    flex: 1 !important;
+  }
+
+  /* Itens da proposta - espaçamento reduzido */
+  .bg-blue-600 {
+    padding: 8px 12px !important;
+    margin-bottom: 10px !important;
+  }
+
+  /* Imagens dos produtos - tamanho otimizado */
+  .w-32.h-32 {
+    width: 80px !important;
+    height: 80px !important;
+  }
+
+  /* Tabela - espaçamento compacto */
+  table {
+    margin-bottom: 15px !important;
+  }
+
+  th, td {
+    padding: 6px 8px !important;
+    font-size: 11px !important;
+  }
+
+  /* Informações adicionais - espaçamento reduzido */
+  .space-y-4 > * + * {
+    margin-top: 8px !important;
+  }
+
+  /* Texto de confirmação - padding reduzido */
+  .bg-yellow-100 {
+    padding: 12px !important;
+    margin-bottom: 15px !important;
+  }
+
+  /* Rodapé - espaçamento otimizado */
+  .border-t {
+    border-top: 1px solid #e5e7eb !important;
+    padding-top: 15px !important;
+  }
+
+  /* Quebras de página inteligentes */
+  .page-break-avoid {
+    page-break-inside: avoid !important;
+  }
+
+  /* Evitar quebras desnecessárias */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid !important;
+  }
+
+  /* Otimização de fontes */
+  h1 {
+    font-size: 18px !important;
+    margin-bottom: 8px !important;
+  }
+
+  h2 {
+    font-size: 16px !important;
+    margin-bottom: 6px !important;
+  }
+
+  h3 {
+    font-size: 14px !important;
+    margin-bottom: 6px !important;
+  }
+
+  /* Remover espaços desnecessários de elementos específicos */
+  .text-center {
+    margin-bottom: 10px !important;
+  }
+
+  .flex.items-center.justify-center {
+    margin-bottom: 10px !important;
+  }
+
+  /* Otimizar espaçamento entre seções */
+  .grid.grid-cols-1.md\\:grid-cols-2 {
+    margin-bottom: 15px !important;
+  }
+
+  /* Compactar área de produtos */
+  .overflow-x-auto {
+    margin-bottom: 15px !important;
+  }
+
+  /* Ajustar espaçamento do cabeçalho */
+  .text-2xl {
+    font-size: 18px !important;
+    line-height: 1.2 !important;
+  }
+
+  .text-sm {
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+}
