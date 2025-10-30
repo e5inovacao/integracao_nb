@@ -26,8 +26,16 @@ export default defineConfig({
   ],
   build: {
     chunkSizeWarningLimit: 1000,
+    target: 'esnext',
+    modulePreload: {
+      polyfill: true
+    },
     rollupOptions: {
       output: {
+        format: 'es',
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
         manualChunks: {
           // Separar React e bibliotecas relacionadas
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],

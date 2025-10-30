@@ -1,0 +1,3 @@
+# Redirects para Single Page Application (SPA)
+# Todas as rotas que não são arquivos estáticos devem retornar o index.html
+/*    /index.html   200

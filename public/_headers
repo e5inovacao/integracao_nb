@@ -1,0 +1,80 @@
+# Headers para arquivos JavaScript e módulos ES6
+/*.js
+  Content-Type: application/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+
+/*.mjs
+  Content-Type: application/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+
+/*.jsx
+  Content-Type: application/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+
+/*.tsx
+  Content-Type: application/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+
+/*.ts
+  Content-Type: application/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+
+# Headers específicos para assets do Vite
+/assets/*.js
+  Content-Type: application/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+  Cache-Control: public, max-age=31536000
+
+# Headers para assets estáticos
+/*.css
+  Content-Type: text/css; charset=utf-8
+  Cache-Control: public, max-age=31536000
+
+/*.woff2
+  Content-Type: font/woff2
+  Cache-Control: public, max-age=31536000
+
+/*.woff
+  Content-Type: font/woff
+  Cache-Control: public, max-age=31536000
+
+/*.ttf
+  Content-Type: font/ttf
+  Cache-Control: public, max-age=31536000
+
+/*.svg
+  Content-Type: image/svg+xml
+  Cache-Control: public, max-age=31536000
+
+/*.png
+  Content-Type: image/png
+  Cache-Control: public, max-age=31536000
+
+/*.jpg
+  Content-Type: image/jpeg
+  Cache-Control: public, max-age=31536000
+
+/*.jpeg
+  Content-Type: image/jpeg
+  Cache-Control: public, max-age=31536000
+
+/*.webp
+  Content-Type: image/webp
+  Cache-Control: public, max-age=31536000
+
+/*.ico
+  Content-Type: image/x-icon
+  Cache-Control: public, max-age=31536000
+
+# Headers para o HTML principal
+/
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+/*.html
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
