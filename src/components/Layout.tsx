@@ -14,21 +14,14 @@ import {
   ChatBubbleLeftRightIcon,
   ChevronLeftIcon,
   UsersIcon,
+  CalculatorIcon,
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../contexts/AuthContext'
 
 const navigation = [
   { name: 'Tela Inicial', href: '/', icon: HomeIcon },
-  { 
-    name: 'Cadastros', 
-    href: '/clientes', 
-    icon: UserGroupIcon,
-    children: [
-      { name: 'Clientes', href: '/clientes' },
-      { name: 'Consultores', href: '/consultores' },
-      { name: 'Gestão de Colaboradores', href: '/gestao-colaboradores' }
-    ]
-  },
+  { name: 'Clientes', href: '/clientes', icon: UserGroupIcon },
+  { name: 'Consultores', href: '/consultores', icon: UserIcon },
   { 
     name: 'Produtos', 
     href: '/produtos', 
@@ -38,18 +31,17 @@ const navigation = [
     name: 'Vendas', 
     href: '/orcamentos', 
     icon: ShoppingCartIcon
+  },
+  { 
+    name: 'Fatores', 
+    href: '/fatores', 
+    icon: CalculatorIcon
   }
 ]
 
 export default function Layout() {
   const location = useLocation()
   const { user, signOut } = useAuth()
-  const [dropdownOpen, setDropdownOpen] = React.useState<string | null>(null)
-  
-  // DEBUG: Log quando o estado do dropdown muda
-  React.useEffect(() => {
-    console.log('🔍 DEBUG: Estado dropdownOpen mudou para:', dropdownOpen);
-  }, [dropdownOpen])
   const [userDropdownOpen, setUserDropdownOpen] = React.useState(false)
   const [isMenuVisible, setIsMenuVisible] = React.useState(true)
   const [lastScrollY, setLastScrollY] = React.useState(0)
@@ -86,22 +78,20 @@ export default function Layout() {
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element
+      
       if (!target.closest('.user-dropdown')) {
         setUserDropdownOpen(false)
       }
-      if (!target.closest('.menu-dropdown')) {
-        setDropdownOpen(null)
-      }
     }
 
-    if (userDropdownOpen || dropdownOpen) {
+    if (userDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside)
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [userDropdownOpen, dropdownOpen])
+  }, [userDropdownOpen])
 
   const getBreadcrumbs = () => {
     const path = location.pathname
@@ -171,71 +161,23 @@ export default function Layout() {
             {!isOrcamentoEditPage && (
               <nav className="flex-1 flex items-center space-x-1 overflow-x-auto overflow-y-visible">
                 {navigation.map((item) => {
-                  const isActive = location.pathname === item.href || 
-                    (item.children && item.children.some(child => location.pathname === child.href))
+                  const isActive = location.pathname === item.href
                   
                   return (
-                  <div key={item.name} className="relative flex-shrink-0 menu-dropdown">
-                    {item.children ? (
-                      <div className="menu-dropdown">
-                        <button
-                          onClick={() => {
-                            console.log('🔍 DEBUG: Botão clicado!', { 
-                              itemName: item.name, 
-                              currentDropdownOpen: dropdownOpen,
-                              willSetTo: dropdownOpen === item.name ? null : item.name
-                            });
-                            setDropdownOpen(dropdownOpen === item.name ? null : item.name);
-                          }}
-                          className={`flex items-center px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-                            isActive 
-                              ? 'bg-menu-green text-white shadow-lg' 
-                              : 'text-gray-300 hover:text-white hover:bg-menu-green-hover'
-                          }`}
-                        >
-                          <item.icon className="w-5 h-5 mr-2 flex-shrink-0" />
-                          <span className="hidden md:inline">{item.name}</span>
-                          <ChevronDownIcon className={`w-4 h-4 ml-2 transition-transform duration-200 flex-shrink-0 ${
-                            dropdownOpen === item.name ? 'rotate-180' : ''
-                          }`} />
-                        </button>
-                        {dropdownOpen === item.name && (
-                          <div className="absolute top-full mt-2 left-0 w-56 bg-white rounded-xl shadow-2xl border border-gray-100 z-[110] overflow-hidden">
-                            <div className="py-2">
-                              {item.children.filter(child => child.name !== 'Fornecedores').map((child) => (
-                                <Link
-                                  key={child.name}
-                                  to={child.href}
-                                  onClick={() => setDropdownOpen(null)}
-                                  className={`block px-4 py-3 text-sm transition-colors ${
-                                    location.pathname === child.href
-                                      ? 'bg-menu-green-light text-white'
-                                      : 'text-gray-700 hover:bg-gray-50 hover:text-menu-green'
-                                  }`}
-                                >
-                                  {child.name}
-                                </Link>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <Link
-                        to={item.href}
-                        className={`flex items-center px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-                          isActive 
-                            ? 'bg-menu-green text-white shadow-lg' 
-                            : 'text-gray-300 hover:text-white hover:bg-menu-green-hover'
-                        }`}
-                      >
-                        <item.icon className="w-5 h-5 mr-2 flex-shrink-0" />
-                        <span className="hidden md:inline">{item.name}</span>
-                      </Link>
-                    )}
-                  </div>
-                )
-              })}
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className={`flex items-center px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+                        isActive 
+                          ? 'bg-menu-green text-white shadow-lg' 
+                          : 'text-gray-300 hover:text-white hover:bg-menu-green-hover'
+                      }`}
+                    >
+                      <item.icon className="w-5 h-5 mr-2 flex-shrink-0" />
+                      <span className="hidden md:inline">{item.name}</span>
+                    </Link>
+                  )
+                })}
             </nav>
             )}
     

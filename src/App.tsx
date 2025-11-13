@@ -27,6 +27,8 @@ import TesteProdutoVariacoes from './pages/TesteProdutoVariacoes';
 import NovoEditor from './pages/NovoEditor';
 import NovoEditor2 from './pages/NovoEditor2';
 import GestaoColaboradores from './pages/GestaoColaboradores';
+import Configuracoes from './pages/Configuracoes';
+import TabelaFator from './pages/TabelaFator';
 
 function App() {
   return (
@@ -167,7 +169,19 @@ function App() {
           {/* Rota para visualização do orçamento */}
           <Route path="orcamento/:id" element={<OrcamentoView />} />
           
-
+          {/* Rota de Configurações - Apenas Admin */}
+          <Route path="configuracoes" element={
+            <ProtectedRoute requiredRole="admin">
+              <Configuracoes />
+            </ProtectedRoute>
+          } />
+          
+          {/* Rota de Tabela de Fator - Apenas Admin */}
+          <Route path="fatores" element={
+            <ProtectedRoute requiredRole="admin">
+              <TabelaFator />
+            </ProtectedRoute>
+          } />
           
           {/* Rota de teste para variações de produto */}
           <Route path="teste-produto-variacoes" element={<TesteProdutoVariacoes />} />

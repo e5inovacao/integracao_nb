@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { createConsultor, updateConsultor } from '../lib/consultor-service'
 import { toast } from 'sonner'
 import { UserIcon, EnvelopeIcon, PhoneIcon, LockClosedIcon } from '@heroicons/react/24/outline'
 
@@ -106,52 +107,50 @@ export default function ConsultorForm() {
     setSaving(true)
     try {
       if (isEditing) {
-        const updateData: any = {
+        // Atualizar consultor existente
+        await updateConsultor(id!, {
           nome: formData.nome,
           email: formData.email,
           telefone: formData.telefone,
-          ativo: formData.ativo,
-          updated_at: new Date().toISOString()
-        }
-
-        // Só atualiza a senha se foi fornecida
-        if (formData.senha.trim()) {
-          updateData.senha = formData.senha
-        }
-
-        const { error } = await supabase
-          .from('consultores')
-          .update(updateData)
-          .eq('id', id)
-
-        if (error) throw error
+          senha: formData.senha.trim() || undefined, // Só atualiza senha se fornecida
+          ativo: formData.ativo
+        })
+        
         toast.success('Consultor atualizado com sucesso!')
       } else {
-        // Criar novo consultor com usuário de autenticação
-        const { data, error } = await supabase
-          .rpc('create_consultor_with_auth_user', {
-            p_nome: formData.nome,
-            p_email: formData.email,
-            p_telefone: formData.telefone || '',
-            p_senha: formData.senha,
-            p_ativo: formData.ativo,
-            p_role: 'consultor'
-          })
-
-        if (error) throw error
-        
-        // Verificar se a função retornou sucesso
-        if (data && !data.success) {
-          throw new Error(data.message || 'Erro ao criar consultor')
-        }
+        // Criar novo consultor
+        await createConsultor({
+          nome: formData.nome,
+          email: formData.email,
+          telefone: formData.telefone || '',
+          senha: formData.senha,
+          ativo: formData.ativo,
+          role: 'consultor'
+        })
         
         toast.success('Consultor criado com sucesso!')
       }
 
       navigate('/consultores')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar consultor:', error)
-      toast.error('Erro ao salvar consultor')
+      
+      // Tratamento de erros mais específico
+      let errorMessage = 'Erro ao salvar consultor'
+      
+      if (error?.message) {
+        if (error.message.includes('Email já está em uso')) {
+          errorMessage = 'Este email já está sendo usado por outro consultor'
+        } else if (error.message.includes('Apenas administradores')) {
+          errorMessage = 'Você não tem permissão para criar consultores'
+        } else if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Erro de autenticação. Verifique suas credenciais'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
+      toast.error(errorMessage)
     } finally {
       setSaving(false)
     }

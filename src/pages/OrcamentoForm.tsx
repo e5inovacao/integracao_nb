@@ -8,6 +8,7 @@ import RichTextEditor from '../components/RichTextEditor';
 import { useVariationColorImage } from '@/hooks/useVariationColorImage';
 import { parseVariacoes } from '@/utils/variationImages';
 import { getValidImageUrl, createImageErrorHandler } from '@/utils/imageUtils';
+import { getConfiguracoesOrcamento, buscarConfiguracoes } from '../lib/configuracoes-service';
 
 // Helpers utilitários para normalização e parse seguro
 // Normaliza strings: lowercase, remove acentos, colapsa espaços, trim
@@ -420,6 +421,107 @@ const ColorVariationSelector: React.FC<{
   );
 };
 
+// Componente para busca de configurações
+const ConfigSearchInput: React.FC<{
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  categoria: string;
+  placeholder?: string;
+}> = ({ label, value, onChange, disabled, categoria, placeholder }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearch = async (term: string) => {
+    if (!term.trim()) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const results = await buscarConfiguracoes(term);
+      const filteredResults = results.filter(config => 
+        config.categoria === categoria || config.categoria === 'geral'
+      );
+      setSearchResults(filteredResults);
+      setShowDropdown(filteredResults.length > 0);
+    } catch (error) {
+      console.error('Erro ao buscar configurações:', error);
+      setSearchResults([]);
+      setShowDropdown(false);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectConfig = (config: any) => {
+    onChange(config.valor);
+    setSearchTerm('');
+    setShowDropdown(false);
+    setSearchResults([]);
+    toast.success(`Configuração "${config.chave}" aplicada`);
+  };
+
+  return (
+    <div className="relative">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        {label}
+      </label>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          placeholder={placeholder}
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+        />
+        <div className="relative">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              handleSearch(e.target.value);
+            }}
+            placeholder="Buscar configuração..."
+            disabled={disabled}
+            className="w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
+          />
+          {showDropdown && (
+            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+              {isSearching ? (
+                <div className="px-3 py-2 text-sm text-gray-500">Buscando...</div>
+              ) : searchResults.length > 0 ? (
+                searchResults.map((config) => (
+                  <button
+                    key={config.id}
+                    onClick={() => handleSelectConfig(config)}
+                    className="w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none text-sm"
+                  >
+                    <div className="font-medium">{config.chave}</div>
+                    <div className="text-gray-600 truncate">{config.valor}</div>
+                    {config.descricao && (
+                      <div className="text-xs text-gray-500 truncate">{config.descricao}</div>
+                    )}
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-2 text-sm text-gray-500">Nenhuma configuração encontrada</div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function OrcamentoForm() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -469,6 +571,14 @@ export default function OrcamentoForm() {
   const [hasBeenEdited, setHasBeenEdited] = useState(false);
   const [isViewOnly, setIsViewOnly] = useState(false); // Controla se está em modo apenas visualização
   const [editingPrices, setEditingPrices] = useState<{ [key: string]: string }>({});
+  
+  // Estados para configurações
+  const [configuracoes, setConfiguracoes] = useState<Record<string, string>>({});
+  const [configuracoesCarregadas, setConfiguracoesCarregadas] = useState(false);
+  
+  // Estados para tabelas de fator
+  const [tabelasFator, setTabelasFator] = useState<{ nome_tabela: string; status: string }[]>([]);
+  const [fatoresCarregados, setFatoresCarregados] = useState<{ [key: string]: { quantidade_inicial: number; quantidade_final: number; fator: number }[] }>({});
 
   // Handler para seleção de cor - versão melhorada do NovoEditor2
   const handleColorVariationSelect = (product: any, variacao: any) => {
@@ -544,12 +654,86 @@ export default function OrcamentoForm() {
     fetchProdutos();
     fetchConsultores();
     fetchRepresentante();
+    fetchConfiguracoes();
+    carregarTabelasFator();
     if (isEditing) {
       fetchOrcamento();
     } else {
       generateNumeroOrcamento();
     }
   }, [id]);
+
+  // Carregar configurações de orçamento
+  const fetchConfiguracoes = async () => {
+    try {
+      const configs = await getConfiguracoesOrcamento();
+      setConfiguracoes(configs);
+      setConfiguracoesCarregadas(true);
+      
+      // Aplicar configurações padrão se não estiver editando
+      if (!isEditing) {
+        setOrcamento(prev => ({
+          ...prev,
+          validade_proposta: configs.validade_proposta || prev.validade_proposta,
+          prazo_entrega: configs.prazo_entrega || prev.prazo_entrega,
+          forma_pagamento: configs.forma_pagamento || prev.forma_pagamento,
+          opcao_frete: configs.opcao_frete || prev.opcao_frete
+        }));
+      }
+    } catch (error) {
+      console.error('Erro ao carregar configurações:', error);
+      setConfiguracoesCarregadas(true); // Marcar como carregado mesmo com erro
+    }
+  };
+
+  // Função para carregar tabelas de fator
+  const carregarTabelasFator = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tabelas_fator')
+        .select('nome_tabela, status')
+        .eq('status', 'ativa')
+        .order('nome_tabela');
+
+      if (error) {
+        console.error('Erro ao carregar tabelas de fator:', error);
+        return;
+      }
+
+      setTabelasFator(data || []);
+
+      // Carregar fatores para cada tabela
+      const fatoresMap: { [key: string]: any[] } = {};
+      for (const tabela of data || []) {
+        const { data: fatores, error: fatoresError } = await supabase
+          .from('fatores')
+          .select('quantidade_inicial, quantidade_final, fator')
+          .eq('nome_tabela', tabela.nome_tabela)
+          .order('quantidade_inicial');
+
+        if (!fatoresError && fatores) {
+          fatoresMap[tabela.nome_tabela] = fatores;
+        }
+      }
+      setFatoresCarregados(fatoresMap);
+    } catch (error) {
+      console.error('Erro ao carregar tabelas de fator:', error);
+    }
+  };
+
+  // Função para obter o fator baseado na quantidade e tabela selecionada
+  const obterFatorPorQuantidade = (nomeTabela: string, quantidade: number): number => {
+    if (!nomeTabela || !fatoresCarregados[nomeTabela]) {
+      return 1; // Valor padrão
+    }
+
+    const fatores = fatoresCarregados[nomeTabela];
+    const fatorEncontrado = fatores.find(f => 
+      quantidade >= f.quantidade_inicial && quantidade <= f.quantidade_final
+    );
+
+    return fatorEncontrado ? fatorEncontrado.fator : 1;
+  };
 
   const fetchClientes = async () => {
     try {
@@ -2481,6 +2665,7 @@ export default function OrcamentoForm() {
                     <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '100px', minWidth: '100px' }}>INFORMAÇÕES</th>
                     <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '80px', minWidth: '80px' }}>QTD</th>
                             <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '90px', minWidth: '90px' }}>PREÇO UNIT.</th>
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '80px', minWidth: '80px' }}>FATOR</th>
                     <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '100px', minWidth: '100px' }}>SUB-TOTAL</th>
                     <th className="px-1 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider no-print" style={{ width: '60px', minWidth: '60px' }}>
                       Ações
@@ -2537,8 +2722,18 @@ export default function OrcamentoForm() {
                     const preco1 = typeof product.price === 'number' ? product.price : (parseFloat(String(product.price)) || 0);
                     const preco2 = typeof product.preco2 === 'number' ? product.preco2 : (parseFloat(String(product.preco2)) || 0);
 
-                    const subtotal1 = quantidade1 * preco1;
-                    const subtotal2 = quantidade2 * preco2;
+                    // Garantir que os fatores sejam números válidos (padrão 1.0)
+                    const fator1 = typeof product.fator1 === 'number' ? product.fator1 : (parseFloat(String(product.fator1)) || 1);
+                    const fator2 = typeof product.fator2 === 'number' ? product.fator2 : (parseFloat(String(product.fator2)) || 1);
+                    const fator3 = typeof product.fator3 === 'number' ? product.fator3 : (parseFloat(String(product.fator3)) || 1);
+
+                    // Calcular preço de venda real (preço unitário × fator)
+                    const precoVendaReal1 = preco1 * fator1;
+                    const precoVendaReal2 = preco2 * fator2;
+                    const precoVendaReal3 = (product.preco3 || 0) * fator3;
+
+                    const subtotal1 = quantidade1 * precoVendaReal1;
+                    const subtotal2 = quantidade2 * precoVendaReal2;
                     
                     return (
                         <tr key={`consolidated-${product.id}-${consolidatedIndex}-${product.groupIndex || 0}`} className="hover:bg-gray-50">
@@ -2778,7 +2973,12 @@ export default function OrcamentoForm() {
                                     if (updatedProducts[firstOriginalIndex]) {
                                       updatedProducts[firstOriginalIndex].quantity = newValue;
                                       updatedProducts[firstOriginalIndex].quantity1 = newValue;
+                                      updatedProducts[firstOriginalIndex].quantidade1 = newValue;
                                       updatedProducts[firstOriginalIndex].valor_total = newValue * (updatedProducts[firstOriginalIndex].price || 0);
+                                      // Recalcular fator1 se uma tabela estiver selecionada
+                                      if (updatedProducts[firstOriginalIndex].tabelaFator1) {
+                                        updatedProducts[firstOriginalIndex].fator1 = obterFatorPorQuantidade(updatedProducts[firstOriginalIndex].tabelaFator1, newValue);
+                                      }
                                     }
                                   } else {
                                     // Produto único, usar índice consolidado
@@ -2786,7 +2986,12 @@ export default function OrcamentoForm() {
                                     if (originalIndex !== -1) {
                                       updatedProducts[originalIndex].quantity = newValue;
                                       updatedProducts[originalIndex].quantity1 = newValue;
+                                      updatedProducts[originalIndex].quantidade1 = newValue;
                                       updatedProducts[originalIndex].valor_total = newValue * (updatedProducts[originalIndex].price || 0);
+                                      // Recalcular fator1 se uma tabela estiver selecionada
+                                      if (updatedProducts[originalIndex].tabelaFator1) {
+                                        updatedProducts[originalIndex].fator1 = obterFatorPorQuantidade(updatedProducts[originalIndex].tabelaFator1, newValue);
+                                      }
                                     }
                                   }
                                   
@@ -2817,7 +3022,12 @@ export default function OrcamentoForm() {
                                     if (p.id === product.id) {
                                       updatedProducts[index] = {
                                         ...updatedProducts[index],
-                                        quantity2: newValue
+                                        quantity2: newValue,
+                                        quantidade2: newValue,
+                                        // Recalcular fator2 se uma tabela estiver selecionada
+                                        fator2: updatedProducts[index].tabelaFator2 ? 
+                                          obterFatorPorQuantidade(updatedProducts[index].tabelaFator2, newValue) : 
+                                          updatedProducts[index].fator2
                                       };
                                     }
                                   });
@@ -2845,7 +3055,12 @@ export default function OrcamentoForm() {
                                     if (p.id === product.id) {
                                       updatedProducts[index] = {
                                         ...updatedProducts[index],
-                                        quantity3: newValue
+                                        quantity3: newValue,
+                                        quantidade3: newValue,
+                                        // Recalcular fator3 se uma tabela estiver selecionada
+                                        fator3: updatedProducts[index].tabelaFator3 ? 
+                                          obterFatorPorQuantidade(updatedProducts[index].tabelaFator3, newValue) : 
+                                          updatedProducts[index].fator3
                                       };
                                     }
                                   });
@@ -2968,6 +3183,128 @@ export default function OrcamentoForm() {
                           </div>
                         </td>
                         
+                        {/* Coluna Fator com 3 campos */}
+                        <td className="px-2 py-3" style={{ width: '80px', minWidth: '80px' }}>
+                          <div className="grid grid-rows-3 gap-1">
+                            {/* Primeiro campo de fator */}
+                            <div className="flex items-center gap-1">
+                              <select
+                                value={product.tabelaFator1 || ''}
+                                onChange={(e) => {
+                                  const updatedProducts = [...selectedProducts];
+                                  const nomeTabela = e.target.value;
+                                  const quantidade = product.quantidade1 || 0;
+                                  const fatorCalculado = nomeTabela ? obterFatorPorQuantidade(nomeTabela, quantidade) : 1;
+
+                                  // Atualizar todos os produtos com o mesmo ID
+                                  updatedProducts.forEach((p, index) => {
+                                    if (p.id === product.id) {
+                                      updatedProducts[index] = {
+                                        ...updatedProducts[index],
+                                        tabelaFator1: nomeTabela,
+                                        fator1: fatorCalculado
+                                      };
+                                    }
+                                  });
+
+                                  setSelectedProducts(updatedProducts);
+                                }}
+                                disabled={isViewOnly}
+                                className={`flex-1 px-1 h-7 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                                  isViewOnly 
+                                    ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed' 
+                                    : 'border-gray-300 hover:border-gray-400 focus:border-blue-500'
+                                }`}
+                              >
+                                <option value="">Selecione</option>
+                                {tabelasFator.map((tabela) => (
+                                  <option key={tabela.nome_tabela} value={tabela.nome_tabela}>
+                                    Fator {tabela.nome_tabela}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Segundo campo de fator */}
+                            <div className="flex items-center gap-1">
+                              <select
+                                value={product.tabelaFator2 || ''}
+                                onChange={(e) => {
+                                  const updatedProducts = [...selectedProducts];
+                                  const nomeTabela = e.target.value;
+                                  const quantidade = product.quantidade2 || 0;
+                                  const fatorCalculado = nomeTabela ? obterFatorPorQuantidade(nomeTabela, quantidade) : 1;
+
+                                  // Atualizar todos os produtos com o mesmo ID
+                                  updatedProducts.forEach((p, index) => {
+                                    if (p.id === product.id) {
+                                      updatedProducts[index] = {
+                                        ...updatedProducts[index],
+                                        tabelaFator2: nomeTabela,
+                                        fator2: fatorCalculado
+                                      };
+                                    }
+                                  });
+
+                                  setSelectedProducts(updatedProducts);
+                                }}
+                                disabled={isViewOnly}
+                                className={`flex-1 px-1 h-7 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                                  isViewOnly 
+                                    ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed' 
+                                    : 'border-gray-300 hover:border-gray-400 focus:border-blue-500'
+                                }`}
+                              >
+                                <option value="">Selecione</option>
+                                {tabelasFator.map((tabela) => (
+                                  <option key={tabela.nome_tabela} value={tabela.nome_tabela}>
+                                    Fator {tabela.nome_tabela}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Terceiro campo de fator */}
+                            <div className="flex items-center gap-1">
+                              <select
+                                value={product.tabelaFator3 || ''}
+                                onChange={(e) => {
+                                  const updatedProducts = [...selectedProducts];
+                                  const nomeTabela = e.target.value;
+                                  const quantidade = product.quantidade3 || 0;
+                                  const fatorCalculado = nomeTabela ? obterFatorPorQuantidade(nomeTabela, quantidade) : 1;
+
+                                  // Atualizar todos os produtos com o mesmo ID
+                                  updatedProducts.forEach((p, index) => {
+                                    if (p.id === product.id) {
+                                      updatedProducts[index] = {
+                                        ...updatedProducts[index],
+                                        tabelaFator3: nomeTabela,
+                                        fator3: fatorCalculado
+                                      };
+                                    }
+                                  });
+
+                                  setSelectedProducts(updatedProducts);
+                                }}
+                                disabled={isViewOnly}
+                                className={`flex-1 px-1 h-7 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                                  isViewOnly 
+                                    ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed' 
+                                    : 'border-gray-300 hover:border-gray-400 focus:border-blue-500'
+                                }`}
+                              >
+                                <option value="">Selecione</option>
+                                {tabelasFator.map((tabela) => (
+                                  <option key={tabela.nome_tabela} value={tabela.nome_tabela}>
+                                    Fator {tabela.nome_tabela}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        </td>
+                        
                         {/* Coluna R$ Sub-Total com 3 campos e rótulos */}
                         <td className="px-2 py-3" style={{ width: '100px', minWidth: '100px' }}>
                           <div className="grid grid-rows-3 gap-1">
@@ -2988,7 +3325,7 @@ export default function OrcamentoForm() {
                             {/* Terceiro subtotal com rótulo lateral */}
                             <div className="flex items-center gap-1">
                               <div className="flex-1 text-xs font-medium text-gray-900 text-right px-1 h-7 bg-gray-50 rounded border flex items-center justify-end">
-                                {formatSubtotalCurrency((product.quantity3 || 0) * (product.preco3 || 0))}
+                                {formatSubtotalCurrency((product.quantity3 || 0) * precoVendaReal3)}
                               </div>
                             </div>
                           </div>
@@ -3041,94 +3378,41 @@ export default function OrcamentoForm() {
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Validade da Proposta
-                </label>
-                <select 
-                  value={orcamento.validade_proposta || '15 dias'}
-                  onChange={(e) => setOrcamento({ ...orcamento, validade_proposta: e.target.value })}
-                  disabled={isViewOnly}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="15 dias">15 dias</option>
-                  <option value="30 dias">30 dias</option>
-                  <option value="60 dias">60 dias</option>
-                </select>
-              </div>
+              <ConfigSearchInput
+                label="Validade da Proposta"
+                value={orcamento.validade_proposta || ''}
+                onChange={(value) => setOrcamento({ ...orcamento, validade_proposta: value })}
+                disabled={isViewOnly}
+                categoria="orcamento"
+                placeholder="Ex: 15 dias, 30 dias..."
+              />
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Prazo de Entrega
-                </label>
-                <select 
-                  value={orcamento.prazo_entrega || '15 / 20 dias úteis'}
-                  onChange={(e) => setOrcamento({ ...orcamento, prazo_entrega: e.target.value })}
-                  disabled={isViewOnly}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="">Selecione o prazo</option>
-                  <option value="3dias úteis">3dias úteis</option>
-                  <option value="4 dias úteis">4 dias úteis</option>
-                  <option value="5 dias úteis">5 dias úteis</option>
-                  <option value="7 / 10 dias úteis">7 / 10 dias úteis</option>
-                  <option value="12 dias úteis">12 dias úteis</option>
-                  <option value="15 dias úteis">15 dias úteis</option>
-                  <option value="15 / 20 dias úteis">15 / 20 dias úteis</option>
-                  <option value="20 dias úteis">20 dias úteis</option>
-                  <option value="25 dias úteis">25 dias úteis</option>
-                  <option value="30 dias úteis">30 dias úteis</option>
-                  <option value="40 dias úteis">40 dias úteis</option>
-                  <option value="50 dias úteis">50 dias úteis</option>
-                  <option value="60 dias úteis">60 dias úteis</option>
-                  <option value="120 dias úteis">120 dias úteis</option>
-                </select>
-              </div>
+              <ConfigSearchInput
+                label="Prazo de Entrega"
+                value={orcamento.prazo_entrega || ''}
+                onChange={(value) => setOrcamento({ ...orcamento, prazo_entrega: value })}
+                disabled={isViewOnly}
+                categoria="orcamento"
+                placeholder="Ex: 15 dias úteis, 20 dias úteis..."
+              />
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Forma de Pagamento
-                </label>
-                <select
-                  value={orcamento.forma_pagamento || ''}
-                  onChange={(e) => setOrcamento({ ...orcamento, forma_pagamento: e.target.value })}
-                  disabled={isViewOnly}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="">Selecione a forma de pagamento</option>
-                  <option value="À vista">À vista</option>
-                  <option value="30 dias">30 dias</option>
-                  <option value="30/60 dias">30/60 dias</option>
-                  <option value="30/60/90 dias">30/60/90 dias</option>
-                  <option value="Parcelado em 2x">Parcelado em 2x</option>
-                  <option value="Parcelado em 3x">Parcelado em 3x</option>
-                  <option value="Parcelado em 4x">Parcelado em 4x</option>
-                  <option value="Parcelado em 5x">Parcelado em 5x</option>
-                  <option value="Parcelado em 6x">Parcelado em 6x</option>
-                  <option value="Parcelado em 10x">Parcelado em 10x</option>
-                  <option value="Parcelado em 12x">Parcelado em 12x</option>
-                  <option value="Entrada + 30 dias">Entrada + 30 dias</option>
-                  <option value="Entrada + 60 dias">Entrada + 60 dias</option>
-                  <option value="Entrada + 30/60 dias">Entrada + 30/60 dias</option>
-                </select>
-              </div>
+              <ConfigSearchInput
+                label="Forma de Pagamento"
+                value={orcamento.forma_pagamento || ''}
+                onChange={(value) => setOrcamento({ ...orcamento, forma_pagamento: value })}
+                disabled={isViewOnly}
+                categoria="orcamento"
+                placeholder="Ex: À vista, 30 dias, Parcelado..."
+              />
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Opção de Frete
-                </label>
-                <select 
-                  value={orcamento.opcao_frete || 'cliente-retira'}
-                  onChange={(e) => setOrcamento({ ...orcamento, opcao_frete: e.target.value })}
-                  disabled={isViewOnly}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="cliente-retira">Cliente retira</option>
-                  <option value="frete-cif-incluso">Frete CIF - Incluso</option>
-                  <option value="frete-cif-grande-vitoria">Frete CIF - Incluso para Grande Vitória, exceto Cariacica, Viana e Guarapari</option>
-                  <option value="frete-fob-nao-incluso">Frete FOB - Não incluso, por conta do cliente</option>
-                </select>
-              </div>
+              <ConfigSearchInput
+                label="Opção de Frete"
+                value={orcamento.opcao_frete || ''}
+                onChange={(value) => setOrcamento({ ...orcamento, opcao_frete: value })}
+                disabled={isViewOnly}
+                categoria="orcamento"
+                placeholder="Ex: Cliente retira, Frete CIF..."
+              />
             </div>
             
             <div className="mt-6">
