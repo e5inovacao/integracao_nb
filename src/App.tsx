@@ -31,6 +31,7 @@ import Configuracoes from './pages/Configuracoes';
 import TabelaFator from './pages/TabelaFator';
 import TabelaFatorCopia from './pages/TabelaFatorCopia';
 import Pedidos from './pages/Pedidos';
+import Comissoes from './pages/Comissoes';
 // Personalização removida
 
 function App() {
@@ -174,6 +175,9 @@ function App() {
           
           {/* Rota de Pedidos - Novo Módulo */}
           <Route path="pedidos" element={<Pedidos />} />
+          
+          {/* Rota de Comissões - Novo Módulo */}
+          <Route path="comissoes" element={<Comissoes />} />
 
           {/* Rota de Configurações - Apenas Admin */}
           <Route path="configuracoes" element={
