@@ -43,14 +43,18 @@ export async function getConfiguracao(chave: string): Promise<string | null> {
 export async function getConfiguracoesPorCategoria(categoria: string): Promise<Configuracao[]> {
   try {
     const { data, error } = await supabase
-      .rpc('get_configuracoes_por_categoria', { p_categoria: categoria })
+      .from('configuracoes')
+      .select('id, chave, valor, descricao, categoria, tipo, ativo, created_at, updated_at')
+      .eq('categoria', categoria)
+      .eq('ativo', true)
+      .order('chave')
 
     if (error) {
       console.error('Erro ao buscar configurações por categoria:', error)
       return []
     }
 
-    return data || []
+    return (data as Configuracao[]) || []
   } catch (error) {
     console.error('Erro ao buscar configurações por categoria:', error)
     return []

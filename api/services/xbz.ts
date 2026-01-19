@@ -29,8 +29,9 @@ class XBZService {
     this.cnpj = process.env.XBZ_API_CNPJ || '';
     this.token = process.env.XBZ_API_TOKEN || '';
 
+    // Make credentials optional - service will be disabled if not configured
     if (!this.cnpj || !this.token) {
-      throw new Error('XBZ API credentials not configured');
+      console.log('XBZ API credentials not configured - XBZ integration will be disabled');
     }
   }
 
@@ -43,6 +44,11 @@ class XBZService {
   }
 
   async getEcologicalProducts(): Promise<XBZProduct[]> {
+    if (!this.cnpj || !this.token) {
+      console.log('XBZ API credentials not configured - returning empty array');
+      return [];
+    }
+
     try {
       const response = await axios.get<XBZApiResponse>(
         `${this.baseUrl}/products/ecological`,
@@ -132,4 +138,3 @@ class XBZService {
 }
 
 export default new XBZService();
-export { XBZProduct, XBZApiResponse };

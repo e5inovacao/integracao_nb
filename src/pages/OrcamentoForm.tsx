@@ -421,106 +421,7 @@ const ColorVariationSelector: React.FC<{
   );
 };
 
-// Componente para busca de configurações
-const ConfigSearchInput: React.FC<{
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  disabled?: boolean;
-  categoria: string;
-  placeholder?: string;
-}> = ({ label, value, onChange, disabled, categoria, placeholder }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-
-  const handleSearch = async (term: string) => {
-    if (!term.trim()) {
-      setSearchResults([]);
-      setShowDropdown(false);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const results = await buscarConfiguracoes(term);
-      const filteredResults = results.filter(config => 
-        config.categoria === categoria || config.categoria === 'geral'
-      );
-      setSearchResults(filteredResults);
-      setShowDropdown(filteredResults.length > 0);
-    } catch (error) {
-      console.error('Erro ao buscar configurações:', error);
-      setSearchResults([]);
-      setShowDropdown(false);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleSelectConfig = (config: any) => {
-    onChange(config.valor);
-    setSearchTerm('');
-    setShowDropdown(false);
-    setSearchResults([]);
-    toast.success(`Configuração "${config.chave}" aplicada`);
-  };
-
-  return (
-    <div className="relative">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        {label}
-      </label>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-          placeholder={placeholder}
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-        />
-        <div className="relative">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              handleSearch(e.target.value);
-            }}
-            placeholder="Buscar configuração..."
-            disabled={disabled}
-            className="w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
-          />
-          {showDropdown && (
-            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-              {isSearching ? (
-                <div className="px-3 py-2 text-sm text-gray-500">Buscando...</div>
-              ) : searchResults.length > 0 ? (
-                searchResults.map((config) => (
-                  <button
-                    key={config.id}
-                    onClick={() => handleSelectConfig(config)}
-                    className="w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none text-sm"
-                  >
-                    <div className="font-medium">{config.chave}</div>
-                    <div className="text-gray-600 truncate">{config.valor}</div>
-                    {config.descricao && (
-                      <div className="text-xs text-gray-500 truncate">{config.descricao}</div>
-                    )}
-                  </button>
-                ))
-              ) : (
-                <div className="px-3 py-2 text-sm text-gray-500">Nenhuma configuração encontrada</div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
+// Removido: componente de busca de configurações e seus inputs auxiliares
 
 export default function OrcamentoForm() {
   const { id } = useParams();
@@ -547,6 +448,9 @@ export default function OrcamentoForm() {
   });
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [showTitles, setShowTitles] = useState<Record<string, boolean>>({});
+  const [tabelasPersonalizacao, setTabelasPersonalizacao] = useState<{ nome_tabela: string; status: string }[]>([]);
+  const [personalizacaoValores, setPersonalizacaoValores] = useState<{ [key: string]: { quantidade_inicial: number; quantidade_final: number; valor: number }[] }>({});
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [consultores, setConsultores] = useState<any[]>([]);
   const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
@@ -579,6 +483,7 @@ export default function OrcamentoForm() {
   // Estados para tabelas de fator
   const [tabelasFator, setTabelasFator] = useState<{ nome_tabela: string; status: string }[]>([]);
   const [fatoresCarregados, setFatoresCarregados] = useState<{ [key: string]: { quantidade_inicial: number; quantidade_final: number; fator: number }[] }>({});
+  // Personalizações removidas
 
   // Handler para seleção de cor - versão melhorada do NovoEditor2
   const handleColorVariationSelect = (product: any, variacao: any) => {
@@ -656,6 +561,7 @@ export default function OrcamentoForm() {
     fetchRepresentante();
     fetchConfiguracoes();
     carregarTabelasFator();
+    // Personalizações removidas
     if (isEditing) {
       fetchOrcamento();
     } else {
@@ -686,13 +592,15 @@ export default function OrcamentoForm() {
     }
   };
 
+  // Personalizações removidas
+
   // Função para carregar tabelas de fator
   const carregarTabelasFator = async () => {
     try {
       const { data, error } = await supabase
         .from('tabelas_fator')
         .select('nome_tabela, status')
-        .eq('status', 'ativa')
+        .eq('status', 'ativo')
         .order('nome_tabela');
 
       if (error) {
@@ -700,19 +608,22 @@ export default function OrcamentoForm() {
         return;
       }
 
-      setTabelasFator(data || []);
+      const nomesUnicos = Array.from(new Set((data || []).map((t) => t.nome_tabela)));
+      const tabelasUnicas = nomesUnicos.map((nome) => ({ nome_tabela: nome, status: 'ativo' }));
+      setTabelasFator(tabelasUnicas);
 
       // Carregar fatores para cada tabela
       const fatoresMap: { [key: string]: any[] } = {};
-      for (const tabela of data || []) {
+      for (const nomeTabela of nomesUnicos) {
         const { data: fatores, error: fatoresError } = await supabase
-          .from('fatores')
+          .from('tabelas_fator')
           .select('quantidade_inicial, quantidade_final, fator')
-          .eq('nome_tabela', tabela.nome_tabela)
+          .eq('status', 'ativo')
+          .eq('nome_tabela', nomeTabela)
           .order('quantidade_inicial');
 
         if (!fatoresError && fatores) {
-          fatoresMap[tabela.nome_tabela] = fatores;
+          fatoresMap[nomeTabela] = fatores;
         }
       }
       setFatoresCarregados(fatoresMap);
@@ -735,10 +646,29 @@ export default function OrcamentoForm() {
     return fatorEncontrado ? fatorEncontrado.fator : 1;
   };
 
+  // Função para obter o valor da personalização baseado na quantidade e tabela selecionada
+  const obterValorPersonalizacao = (nomeTabela: string | null | undefined, quantidade: number): number => {
+    if (!nomeTabela || !quantidade || !personalizacaoValores[nomeTabela]) {
+      return 0; // Valor padrão é 0 (sem custo extra)
+    }
+
+    const faixas = personalizacaoValores[nomeTabela];
+    const faixaEncontrada = faixas.find(f => 
+      quantidade >= f.quantidade_inicial && quantidade <= f.quantidade_final
+    );
+
+    return faixaEncontrada ? faixaEncontrada.valor : 0;
+  };
+
+  // Carregar nomes de tabelas de personalização ativas
+  // Personalização removida
+
+  // Personalizações removidas
+
   const fetchClientes = async () => {
     try {
       let query = supabase
-        .from('usuarios_clientes')
+        .from('clientes_sistema')
         .select('id, nome, email, telefone, empresa, cnpj, endereco');
 
       // Se for consultor, filtrar apenas clientes atribuídos a ele
@@ -772,7 +702,7 @@ export default function OrcamentoForm() {
   const fetchProdutos = async () => {
     try {
       const { data, error } = await supabase
-        .from('ecologic_products_site')
+        .from('ecologic_products')
         .select('id, titulo, descricao, categoria')
         .order('titulo');
 
@@ -847,9 +777,9 @@ export default function OrcamentoForm() {
       while (retryCount < maxRetries) {
         try {
           const { data, error: orcamentoError } = await supabase
-            .from('solicitacao_orcamentos')
+            .from('orcamentos_sistema')
             .select('*')
-            .eq('solicitacao_id', id)
+            .eq('id', id)
             .single();
 
           if (orcamentoError) {
@@ -1190,7 +1120,7 @@ export default function OrcamentoForm() {
             personalizacao: product.customizations || '',
             gravacao: product.gravacao || '',
             info: product.observacoes || '',
-            fator: product.fator || '',
+            fator: product.fator || 1.0,
             preco1: product.preco1 || 0,
             preco2: product.preco2 || 0,
             preco3: product.preco3 || 0,
@@ -1621,9 +1551,22 @@ export default function OrcamentoForm() {
         const valorUnitarioValidado = validateDecimalValue(product.valor_unitario, `valor_unitario do produto ${index + 1}`);
         
         // CORREÇÃO: Mapear preco1, preco2, preco3 para valor_qtd01, valor_qtd02, valor_qtd03
-        const valorQtd01 = validateDecimalValue(product.preco1, `valor_qtd01 do produto ${index + 1}`);
-        const valorQtd02 = validateDecimalValue(product.preco2, `valor_qtd02 do produto ${index + 1}`);
-        const valorQtd03 = validateDecimalValue(product.preco3, `valor_qtd03 do produto ${index + 1}`);
+        // Calcular PREÇO UNIT ajustado (fornecedor × fator × personalização) para cada faixa
+        const q1 = product.quantity1 || 0;
+        const q2 = product.quantity2 || 0;
+        const q3 = product.quantity3 || 0;
+        const base1 = typeof product.fator1 === 'number' ? product.fator1 : (product.tabelaFator1 ? obterFatorPorQuantidade(product.tabelaFator1, q1) : 1);
+        const base2 = typeof product.fator2 === 'number' ? product.fator2 : (product.tabelaFator2 ? obterFatorPorQuantidade(product.tabelaFator2, q2) : 1);
+        const base3 = typeof product.fator3 === 'number' ? product.fator3 : (product.tabelaFator3 ? obterFatorPorQuantidade(product.tabelaFator3, q3) : 1);
+        const valPers1 = obterValorPersonalizacao(product.personalizacao, q1) || 0;
+        const valPers2 = obterValorPersonalizacao(product.personalizacao, q2) || 0;
+        const valPers3 = obterValorPersonalizacao(product.personalizacao, q3) || 0;
+        const freteUnit1 = q1 > 0 && (product.frete1 || 0) > 0 ? Math.max((product.frete1 || 0) / q1, 0.01) : 0;
+        const freteUnit2 = q2 > 0 && (product.frete2 || 0) > 0 ? Math.max((product.frete2 || 0) / q2, 0.01) : 0;
+        const freteUnit3 = q3 > 0 && (product.frete3 || 0) > 0 ? Math.max((product.frete3 || 0) / q3, 0.01) : 0;
+        const valorQtd01 = validateDecimalValue(((product.preco1 || 0) * (base1 || 1)) + valPers1 + freteUnit1, `valor_qtd01 do produto ${index + 1}`);
+        const valorQtd02 = validateDecimalValue(((product.preco2 || 0) * (base2 || 1)) + valPers2 + freteUnit2, `valor_qtd02 do produto ${index + 1}`);
+        const valorQtd03 = validateDecimalValue(((product.preco3 || 0) * (base3 || 1)) + valPers3 + freteUnit3, `valor_qtd03 do produto ${index + 1}`);
         
         // Criar uma linha separada para cada produto (mesmo produto com cores diferentes = linhas distintas)
         // Cada produto será salvo com suas quantidades e preços nas respectivas colunas
@@ -1642,11 +1585,15 @@ export default function OrcamentoForm() {
           preco_unitario: precoUnitarioValidado,
           valor_unitario: valorUnitarioValidado,
           observacoes: product.observacoes || null,
-          fator: product.fator || null,
+          fator: product.fator || 1.0,
           // CORREÇÃO: Salvar nos campos corretos
           valor_qtd01: valorQtd01,
           valor_qtd02: valorQtd02,
           valor_qtd03: valorQtd03,
+          // Persistir nomes das tabelas de fator para referência futura
+          tabelafator1: typeof product.fator1 === 'number' ? product.fator1 : (parseFloat(String(product.fator1)) || null),
+          tabelafator2: typeof product.fator2 === 'number' ? product.fator2 : (parseFloat(String(product.fator2)) || null),
+          tabelafator3: typeof product.fator3 === 'number' ? product.fator3 : (parseFloat(String(product.fator3)) || null),
           // Salvar cor_selecionada como JSON estruturado para manter todas as informações
           cor_selecionada: corSelecionada ? JSON.stringify(corSelecionada) : (product.color || null),
           imagem_variacao: imagemCorSelecionada || null,
@@ -2019,7 +1966,7 @@ export default function OrcamentoForm() {
             preco_unitario: product.preco_unitario || null,
             valor_unitario: product.valor_unitario || null,
             observacoes: product.observacoes || null,
-            fator: product.fator || null,
+            fator: product.fator || 1.0,
             valor_qtd01: product.preco1 || null,
             valor_qtd02: product.preco2 || null,
             valor_qtd03: product.preco3 || null
@@ -2244,7 +2191,7 @@ export default function OrcamentoForm() {
       personalizacao: '',
       gravacao: '',
       info: '',
-      fator: '',
+      fator: 1.0,
       preco: 0
     };
 
@@ -2661,12 +2608,19 @@ export default function OrcamentoForm() {
               <table className="min-w-full divide-y divide-gray-200 print-products-table">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '200px', minWidth: '200px' }}>PRODUTO & VARIAÇÕES</th>
-                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '100px', minWidth: '100px' }}>INFORMAÇÕES</th>
-                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '80px', minWidth: '80px' }}>QTD</th>
-                            <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '90px', minWidth: '90px' }}>PREÇO UNIT.</th>
-                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '80px', minWidth: '80px' }}>FATOR</th>
-                    <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '100px', minWidth: '100px' }}>SUB-TOTAL</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '180px', minWidth: '180px' }}>PRODUTO & VARIAÇÕES</th>
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '200px', minWidth: '200px' }}>INFORMAÇÕES</th>
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '70px', minWidth: '70px' }}>QTD</th>
+                    <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '80px', minWidth: '80px' }}>Custo Unit</th>
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '120px', minWidth: '120px' }}>Person</th>
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '120px', minWidth: '120px' }}>Layout</th>
+                    <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '80px', minWidth: '80px' }}>Frete Forn</th>
+                    <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '80px', minWidth: '80px' }}>Frete Cliente</th>
+                    <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '90px', minWidth: '90px' }}>CUSTO</th>
+                    {/* colunas removidas: PREÇO UNIT. FORN., Preço Unitário, Fator (Tabela) */}
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '70px', minWidth: '70px' }}>Fator</th>
+                    <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '90px', minWidth: '90px' }}>VENDA UNIT.</th>
+                    <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '80px', minWidth: '80px' }}>VALOR DE VENDA</th>
                     <th className="px-1 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider no-print" style={{ width: '60px', minWidth: '60px' }}>
                       Ações
                     </th>
@@ -2727,18 +2681,45 @@ export default function OrcamentoForm() {
                     const fator2 = typeof product.fator2 === 'number' ? product.fator2 : (parseFloat(String(product.fator2)) || 1);
                     const fator3 = typeof product.fator3 === 'number' ? product.fator3 : (parseFloat(String(product.fator3)) || 1);
 
-                    // Calcular preço de venda real (preço unitário × fator)
-                    const precoVendaReal1 = preco1 * fator1;
-                    const precoVendaReal2 = preco2 * fator2;
-                    const precoVendaReal3 = (product.preco3 || 0) * fator3;
+                    const valPers1 = 0;
+                    const valPers2 = 0;
+                    const valPers3 = 0;
+                    const precoVendaReal1 = (preco1 * fator1) + valPers1;
+                    const precoVendaReal2 = (preco2 * fator2) + valPers2;
+                    const precoVendaReal3 = ((product.preco3 || 0) * fator3) + valPers3;
 
                     const subtotal1 = quantidade1 * precoVendaReal1;
                     const subtotal2 = quantidade2 * precoVendaReal2;
                     
+                    // Novos campos para cálculo de CUSTO
+                    const custoUnit1 = typeof product.custoUnit1 === 'number' ? product.custoUnit1 : (parseFloat(String(product.custoUnit1)) || 0);
+                    const custoUnit2 = typeof product.custoUnit2 === 'number' ? product.custoUnit2 : (parseFloat(String(product.custoUnit2)) || 0);
+                    const custoUnit3 = typeof product.custoUnit3 === 'number' ? product.custoUnit3 : (parseFloat(String(product.custoUnit3)) || 0);
+                    const freteFornecedor1 = typeof product.freteFornecedor1 === 'number' ? product.freteFornecedor1 : (parseFloat(String(product.freteFornecedor1)) || 0);
+                    const freteFornecedor2 = typeof product.freteFornecedor2 === 'number' ? product.freteFornecedor2 : (parseFloat(String(product.freteFornecedor2)) || 0);
+                    const freteFornecedor3 = typeof product.freteFornecedor3 === 'number' ? product.freteFornecedor3 : (parseFloat(String(product.freteFornecedor3)) || 0);
+                    const freteCliente1 = typeof product.freteCliente1 === 'number' ? product.freteCliente1 : (parseFloat(String(product.freteCliente1)) || 0);
+                    const freteCliente2 = typeof product.freteCliente2 === 'number' ? product.freteCliente2 : (parseFloat(String(product.freteCliente2)) || 0);
+                    const freteCliente3 = typeof product.freteCliente3 === 'number' ? product.freteCliente3 : (parseFloat(String(product.freteCliente3)) || 0);
+                    const person1Val = typeof product.person1 === 'number' ? product.person1 : (parseFloat(String(product.person1)) || 0);
+                    const person2Val = typeof product.person2 === 'number' ? product.person2 : (parseFloat(String(product.person2)) || 0);
+                    const person3Val = typeof product.person3 === 'number' ? product.person3 : (parseFloat(String(product.person3)) || 0);
+                    const layout1Val = typeof product.layout1 === 'number' ? product.layout1 : (parseFloat(String(product.layout1)) || 0);
+                    const layout2Val = typeof product.layout2 === 'number' ? product.layout2 : (parseFloat(String(product.layout2)) || 0);
+                    const layout3Val = typeof product.layout3 === 'number' ? product.layout3 : (parseFloat(String(product.layout3)) || 0);
+                    
+                    const custoCalculado1 = (quantidade1 * custoUnit1) + freteFornecedor1 + freteCliente1 + person1Val + layout1Val;
+                    const custoCalculado2 = (quantidade2 * custoUnit2) + freteFornecedor2 + freteCliente2 + person2Val + layout2Val;
+                    const custoCalculado3 = ((product.quantity3 || 0) * custoUnit3) + freteFornecedor3 + freteCliente3 + person3Val + layout3Val;
+                    
+                    const subtotalCalculado1 = custoCalculado1 * (fator1 || 1);
+                    const subtotalCalculado2 = custoCalculado2 * (fator2 || 1);
+                    const subtotalCalculado3 = custoCalculado3 * (fator3 || 1);
+                    
                     return (
                         <tr key={`consolidated-${product.id}-${consolidatedIndex}-${product.groupIndex || 0}`} className="hover:bg-gray-50">
                         {/* Coluna Produto - Expandida para incluir informações */}
-                        <td className="px-2 py-3" style={{ width: '200px', minWidth: '200px' }}>
+                        <td className="px-2 py-3" style={{ width: '180px', minWidth: '180px' }}>
                           <div className="flex flex-col space-y-2">
                             {/* Seção Principal do Produto */}
                             <div className="flex items-start space-x-2 p-2 bg-gray-50 rounded-lg border">
@@ -2747,9 +2728,16 @@ export default function OrcamentoForm() {
                               
                               {/* Informações do Produto */}
                               <div className="flex-1 min-w-0">
-                                <h4 className="text-xs font-medium text-gray-900 truncate">
+                                <div className="text-xs font-medium text-gray-900" style={{ display: '-webkit-box', WebkitLineClamp: showTitles?.[product.id] ? 'unset' as any : 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}>
                                   {product.name || product.titulo || 'Produto sem nome'}
-                                </h4>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="text-[10px] text-blue-600 mt-1"
+                                  onClick={() => setShowTitles(prev => ({ ...prev, [product.id]: !prev?.[product.id] }))}
+                                >
+                                  {showTitles?.[product.id] ? 'ver menos' : 'ver mais'}
+                                </button>
                                 <p className="text-xs text-gray-500 mt-1">
                                   ID: {product.id}
                                 </p>
@@ -2848,65 +2836,12 @@ export default function OrcamentoForm() {
                               )}
                             </div>
                             
-                            {/* Dropdown de Personalização */}
-                            <div className="border border-gray-200 rounded-lg p-2 bg-white mt-2">
-                              <div className="mb-1">
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
-                                  Personalização:
-                                </label>
-                                <select
-                                  value={product.personalizacao || ''}
-                                  onChange={(e) => {
-                                    const updatedProducts = [...selectedProducts];
-                                    
-                                    if (product.originalIndexes && product.originalIndexes.length > 0) {
-                                      product.originalIndexes.forEach((originalIndex: number) => {
-                                        if (updatedProducts[originalIndex]) {
-                                          updatedProducts[originalIndex].personalizacao = e.target.value;
-                                        }
-                                      });
-                                    } else {
-                                      const originalIndex = selectedProducts.findIndex(p => p.id === product.id);
-                                      if (originalIndex !== -1) {
-                                        updatedProducts[originalIndex].personalizacao = e.target.value;
-                                      }
-                                    }
-                                    
-                                    setSelectedProducts(updatedProducts);
-                                  }}
-                                  disabled={isViewOnly}
-                                  className={`w-full px-2 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                                    isViewOnly 
-                                      ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed' 
-                                      : 'border-gray-300 hover:border-gray-400 focus:border-blue-500'
-                                  }`}
-                                >
-                                  <option value="">Sel. gravação</option>
-                                  <option value="1 cor">1 cor</option>
-                                  <option value="Bordado">Bordado</option>
-                                  <option value="CO2">CO2</option>
-                                  <option value="Digital">Digital</option>
-                                  <option value="Digital UV">Digital UV</option>
-                                  <option value="Hot Stamping">Hot Stamping</option>
-                                  <option value="Impressão Digital">Impressão Digital</option>
-                                  <option value="Laser abridores e pendrives">Laser abridores e pendrives</option>
-                                  <option value="Laser canetas e lapiseiras">Laser canetas e lapiseiras</option>
-                                  <option value="quadricromia">quadricromia</option>
-                                  <option value="Silk 2 cores">Silk 2 cores</option>
-                                  <option value="Silk 3 cores">Silk 3 cores</option>
-                                  <option value="Silk 4 cores">Silk 4 cores</option>
-                                  <option value="Silkscreen">Silkscreen</option>
-                                  <option value="Sublimação">Sublimação</option>
-                                  <option value="Tampografia">Tampografia</option>
-                                  <option value="Transfer">Transfer</option>
-                                </select>
-                              </div>
-                            </div>
+                            {/* Personalização removida */}
                           </div>
                         </td>
                         
                         {/* Coluna Informações - Campo completo do produto */}
-                        <td className="px-2 py-3" style={{ width: '100px', minWidth: '100px' }}>
+                        <td className="px-2 py-3" style={{ width: '200px', minWidth: '200px' }}>
                           <div className="space-y-1 p-1 border border-gray-200 rounded-lg bg-gray-50">
                             {/* Título e Descrição Combinados */}
                             <div>
@@ -2956,8 +2891,8 @@ export default function OrcamentoForm() {
 
                         
                         {/* Coluna Quantidade com 3 campos e rótulos */}
-                        <td className="px-2 py-3" style={{ width: '80px', minWidth: '80px' }}>
-                          <div className="grid grid-rows-3 gap-1">
+                        <td className="px-2 py-3" style={{ width: '70px', minWidth: '70px' }}>
+                          <div className="grid grid-rows-3 gap-1 items-center">
                             {/* Primeiro campo de quantidade com rótulo lateral */}
                             <div className="flex items-center gap-1">
                               <input
@@ -2976,9 +2911,12 @@ export default function OrcamentoForm() {
                                       updatedProducts[firstOriginalIndex].quantidade1 = newValue;
                                       updatedProducts[firstOriginalIndex].valor_total = newValue * (updatedProducts[firstOriginalIndex].price || 0);
                                       // Recalcular fator1 se uma tabela estiver selecionada
-                                      if (updatedProducts[firstOriginalIndex].tabelaFator1) {
+                                  if (updatedProducts[firstOriginalIndex].tabelaFator1) {
                                         updatedProducts[firstOriginalIndex].fator1 = obterFatorPorQuantidade(updatedProducts[firstOriginalIndex].tabelaFator1, newValue);
+                                        // Atualizar o fator principal com base no fator1 (usando quantidade 01 como referência)
+                                        updatedProducts[firstOriginalIndex].fator = obterFatorPorQuantidade(updatedProducts[firstOriginalIndex].tabelaFator1, newValue);
                                       }
+                                      // Personalizações removidas
                                     }
                                   } else {
                                     // Produto único, usar índice consolidado
@@ -2991,7 +2929,10 @@ export default function OrcamentoForm() {
                                       // Recalcular fator1 se uma tabela estiver selecionada
                                       if (updatedProducts[originalIndex].tabelaFator1) {
                                         updatedProducts[originalIndex].fator1 = obterFatorPorQuantidade(updatedProducts[originalIndex].tabelaFator1, newValue);
+                                        // Atualizar o fator principal com base no fator1 (usando quantidade 01 como referência)
+                                        updatedProducts[originalIndex].fator = obterFatorPorQuantidade(updatedProducts[originalIndex].tabelaFator1, newValue);
                                       }
+                                      // Personalizações removidas
                                     }
                                   }
                                   
@@ -3076,127 +3017,471 @@ export default function OrcamentoForm() {
                           </div>
                         </td>
                         
-                        {/* Coluna Preço Unitário com 3 campos e rótulos */}
-                        <td className="px-2 py-3" style={{ width: '90px', minWidth: '90px' }}>
-                          <div className="grid grid-rows-3 gap-1">
-                            {/* Primeiro campo de preço com rótulo lateral */}
+                        {/* Coluna Custo Unit com 3 campos */}
+                        <td className="px-2 py-3" style={{ width: '80px', minWidth: '80px' }}>
+                          <div className="grid grid-rows-3 gap-1 items-center">
                             <div className="flex items-center gap-1">
                               <input
                                 type="text"
-                                value={formatCurrencyRightToLeft(String((product.preco1 ?? product.price ?? 0) * 100))}
+                                value={formatCurrencyRightToLeft(String((product.custoUnit1 ?? 0) * 100))}
                                 onChange={(e) => {
                                   const updatedProducts = [...selectedProducts];
                                   const newValue = parseCurrencyRightToLeft(e.target.value);
-
-                                  // Atualizar todos os produtos com o mesmo ID para garantir consistência
+                                  if (isNaN(newValue) || newValue < 0) {
+                                    toast.error('Informe um valor numérico válido para Custo Unit');
+                                    return;
+                                  }
                                   updatedProducts.forEach((p, index) => {
                                     if (p.id === product.id) {
                                       updatedProducts[index] = {
                                         ...updatedProducts[index],
-                                        price: newValue,
-                                        preco1: newValue,
-                                        valor_total: newValue * (updatedProducts[index].quantity || 0)
+                                        custoUnit1: newValue
                                       };
                                     }
                                   });
-
                                   setSelectedProducts(updatedProducts);
-                                  console.log('💰 Preço 1 atualizado:', { productId: product.id, newValue, updatedProducts: updatedProducts.filter(p => p.id === product.id) });
                                 }}
                                 onInput={(e) => {
                                   const target = e.target as HTMLInputElement;
                                   target.value = formatCurrencyRightToLeft(target.value);
                                 }}
+                                inputMode="numeric"
+                                pattern="[0-9.,]*"
                                 placeholder="0,00"
-                                disabled={isViewOnly}
-                                className={`flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                                  isViewOnly 
-                                    ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed' 
-                                    : 'border-gray-300 hover:border-gray-400 focus:border-blue-500'
-                                }`}
-                              />
-                            </div>
-
-                            {/* Segundo campo de preço com rótulo lateral */}
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="text"
-                                value={formatCurrencyRightToLeft(String((product.preco2 ?? 0) * 100))}
-                                onChange={(e) => {
-                                  const updatedProducts = [...selectedProducts];
-                                  const newValue = parseCurrencyRightToLeft(e.target.value);
-
-                                  // Atualizar todos os produtos com o mesmo ID
-                                  updatedProducts.forEach((p, index) => {
-                                    if (p.id === product.id) {
-                                      updatedProducts[index] = {
-                                        ...updatedProducts[index],
-                                        preco2: newValue
-                                      };
-                                    }
-                                  });
-
-                                  setSelectedProducts(updatedProducts);
-                                  console.log('💰 Preço 2 atualizado:', { productId: product.id, newValue, updatedProducts: updatedProducts.filter(p => p.id === product.id) });
-                                }}
-                                onInput={(e) => {
-                                  const target = e.target as HTMLInputElement;
-                                  target.value = formatCurrencyRightToLeft(target.value);
-                                }}
-                                placeholder="0,00"
-                                disabled={false}
                                 className="flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300 hover:border-gray-400 focus:border-blue-500"
                               />
                             </div>
-
-                            {/* Terceiro campo de preço com rótulo lateral */}
                             <div className="flex items-center gap-1">
                               <input
                                 type="text"
-                                value={formatCurrencyRightToLeft(String((product.preco3 ?? 0) * 100))}
+                                value={formatCurrencyRightToLeft(String((product.custoUnit2 ?? 0) * 100))}
                                 onChange={(e) => {
                                   const updatedProducts = [...selectedProducts];
                                   const newValue = parseCurrencyRightToLeft(e.target.value);
-
-                                  // Atualizar todos os produtos com o mesmo ID
+                                  if (isNaN(newValue) || newValue < 0) {
+                                    toast.error('Informe um valor numérico válido para Custo Unit');
+                                    return;
+                                  }
                                   updatedProducts.forEach((p, index) => {
                                     if (p.id === product.id) {
                                       updatedProducts[index] = {
                                         ...updatedProducts[index],
-                                        preco3: newValue
+                                        custoUnit2: newValue
                                       };
                                     }
                                   });
-
                                   setSelectedProducts(updatedProducts);
-                                  console.log('💰 Preço 3 atualizado:', { productId: product.id, newValue, updatedProducts: updatedProducts.filter(p => p.id === product.id) });
                                 }}
                                 onInput={(e) => {
                                   const target = e.target as HTMLInputElement;
                                   target.value = formatCurrencyRightToLeft(target.value);
                                 }}
+                                inputMode="numeric"
+                                pattern="[0-9.,]*"
                                 placeholder="0,00"
-                                disabled={false}
+                                className="flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300 hover:border-gray-400 focus:border-blue-500"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                value={formatCurrencyRightToLeft(String((product.custoUnit3 ?? 0) * 100))}
+                                onChange={(e) => {
+                                  const updatedProducts = [...selectedProducts];
+                                  const newValue = parseCurrencyRightToLeft(e.target.value);
+                                  if (isNaN(newValue) || newValue < 0) {
+                                    toast.error('Informe um valor numérico válido para Custo Unit');
+                                    return;
+                                  }
+                                  updatedProducts.forEach((p, index) => {
+                                    if (p.id === product.id) {
+                                      updatedProducts[index] = {
+                                        ...updatedProducts[index],
+                                        custoUnit3: newValue
+                                      };
+                                    }
+                                  });
+                                  setSelectedProducts(updatedProducts);
+                                }}
+                                onInput={(e) => {
+                                  const target = e.target as HTMLInputElement;
+                                  target.value = formatCurrencyRightToLeft(target.value);
+                                }}
+                                inputMode="numeric"
+                                pattern="[0-9.,]*"
+                                placeholder="0,00"
                                 className="flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300 hover:border-gray-400 focus:border-blue-500"
                               />
                             </div>
                           </div>
                         </td>
                         
-                        {/* Coluna Fator com 3 campos */}
+                        {/* Coluna Person com 3 campos */}
+                        <td className="px-2 py-3" style={{ width: '120px', minWidth: '120px' }}>
+                          <div className="grid grid-rows-3 gap-1 items-center">
+                            <input
+                              type="text"
+                              value={formatCurrencyRightToLeft(String((product.person1 ?? 0) * 100))}
+                              onChange={(e) => {
+                                const updated = [...selectedProducts];
+                                const val = parseCurrencyRightToLeft(e.target.value);
+                                if (isNaN(val) || val < 0) return;
+                                updated.forEach((p, idx) => {
+                                  if (p.id === product.id) {
+                                    updated[idx] = { ...updated[idx], person1: val };
+                                  }
+                                });
+                                setSelectedProducts(updated);
+                              }}
+                              onInput={(e) => {
+                                const target = e.target as HTMLInputElement;
+                                target.value = formatCurrencyRightToLeft(target.value);
+                              }}
+                              inputMode="numeric"
+                              pattern="[0-9.,]*"
+                              placeholder="0,00"
+                              className="flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300"
+                            />
+                            <input
+                              type="text"
+                              value={formatCurrencyRightToLeft(String((product.person2 ?? 0) * 100))}
+                              onChange={(e) => {
+                                const updated = [...selectedProducts];
+                                const val = parseCurrencyRightToLeft(e.target.value);
+                                if (isNaN(val) || val < 0) return;
+                                updated.forEach((p, idx) => {
+                                  if (p.id === product.id) {
+                                    updated[idx] = { ...updated[idx], person2: val };
+                                  }
+                                });
+                                setSelectedProducts(updated);
+                              }}
+                              onInput={(e) => {
+                                const target = e.target as HTMLInputElement;
+                                target.value = formatCurrencyRightToLeft(target.value);
+                              }}
+                              inputMode="numeric"
+                              pattern="[0-9.,]*"
+                              placeholder="0,00"
+                              className="flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300"
+                            />
+                            <input
+                              type="text"
+                              value={formatCurrencyRightToLeft(String((product.person3 ?? 0) * 100))}
+                              onChange={(e) => {
+                                const updated = [...selectedProducts];
+                                const val = parseCurrencyRightToLeft(e.target.value);
+                                if (isNaN(val) || val < 0) return;
+                                updated.forEach((p, idx) => {
+                                  if (p.id === product.id) {
+                                    updated[idx] = { ...updated[idx], person3: val };
+                                  }
+                                });
+                                setSelectedProducts(updated);
+                              }}
+                              onInput={(e) => {
+                                const target = e.target as HTMLInputElement;
+                                target.value = formatCurrencyRightToLeft(target.value);
+                              }}
+                              inputMode="numeric"
+                              pattern="[0-9.,]*"
+                              placeholder="0,00"
+                              className="flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300"
+                            />
+                          </div>
+                        </td>
+                        
+                        {/* Coluna Layout com 3 campos */}
+                        <td className="px-2 py-3" style={{ width: '120px', minWidth: '120px' }}>
+                          <div className="grid grid-rows-3 gap-1 items-center">
+                            <input
+                              type="text"
+                              value={formatCurrencyRightToLeft(String((product.layout1 ?? 0) * 100))}
+                              onChange={(e) => {
+                                const updated = [...selectedProducts];
+                                const val = parseCurrencyRightToLeft(e.target.value);
+                                if (isNaN(val) || val < 0) return;
+                                updated.forEach((p, idx) => {
+                                  if (p.id === product.id) {
+                                    updated[idx] = { ...updated[idx], layout1: val };
+                                  }
+                                });
+                                setSelectedProducts(updated);
+                              }}
+                              onInput={(e) => {
+                                const target = e.target as HTMLInputElement;
+                                target.value = formatCurrencyRightToLeft(target.value);
+                              }}
+                              inputMode="numeric"
+                              pattern="[0-9.,]*"
+                              placeholder="0,00"
+                              className="flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300"
+                            />
+                            <input
+                              type="text"
+                              value={formatCurrencyRightToLeft(String((product.layout2 ?? 0) * 100))}
+                              onChange={(e) => {
+                                const updated = [...selectedProducts];
+                                const val = parseCurrencyRightToLeft(e.target.value);
+                                if (isNaN(val) || val < 0) return;
+                                updated.forEach((p, idx) => {
+                                  if (p.id === product.id) {
+                                    updated[idx] = { ...updated[idx], layout2: val };
+                                  }
+                                });
+                                setSelectedProducts(updated);
+                              }}
+                              onInput={(e) => {
+                                const target = e.target as HTMLInputElement;
+                                target.value = formatCurrencyRightToLeft(target.value);
+                              }}
+                              inputMode="numeric"
+                              pattern="[0-9.,]*"
+                              placeholder="0,00"
+                              className="flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300"
+                            />
+                            <input
+                              type="text"
+                              value={formatCurrencyRightToLeft(String((product.layout3 ?? 0) * 100))}
+                              onChange={(e) => {
+                                const updated = [...selectedProducts];
+                                const val = parseCurrencyRightToLeft(e.target.value);
+                                if (isNaN(val) || val < 0) return;
+                                updated.forEach((p, idx) => {
+                                  if (p.id === product.id) {
+                                    updated[idx] = { ...updated[idx], layout3: val };
+                                  }
+                                });
+                                setSelectedProducts(updated);
+                              }}
+                              onInput={(e) => {
+                                const target = e.target as HTMLInputElement;
+                                target.value = formatCurrencyRightToLeft(target.value);
+                              }}
+                              inputMode="numeric"
+                              pattern="[0-9.,]*"
+                              placeholder="0,00"
+                              className="flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300"
+                            />
+                          </div>
+                        </td>
+                        
+                        {/* Coluna Frete Fornecedor com 3 campos */}
                         <td className="px-2 py-3" style={{ width: '80px', minWidth: '80px' }}>
+                          <div className="grid grid-rows-3 gap-1 items-center">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                value={formatCurrencyRightToLeft(String((product.freteFornecedor1 ?? 0) * 100))}
+                                onChange={(e) => {
+                                  const updated = [...selectedProducts];
+                                  const val = parseCurrencyRightToLeft(e.target.value);
+                                  if (isNaN(val) || val < 0) {
+                                    toast.error('Informe um valor numérico válido para Frete Forn');
+                                    return;
+                                  }
+                                  updated.forEach((p, idx) => {
+                                    if (p.id === product.id) {
+                                      updated[idx] = { ...updated[idx], freteFornecedor1: val };
+                                    }
+                                  });
+                                  setSelectedProducts(updated);
+                                }}
+                                onInput={(e) => {
+                                  const target = e.target as HTMLInputElement;
+                                  target.value = formatCurrencyRightToLeft(target.value);
+                                }}
+                                inputMode="numeric"
+                                pattern="[0-9.,]*"
+                                placeholder="0,00"
+                                className="flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300 hover:border-gray-400 focus:border-blue-500"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                value={formatCurrencyRightToLeft(String((product.freteFornecedor2 ?? 0) * 100))}
+                                onChange={(e) => {
+                                  const updated = [...selectedProducts];
+                                  const val = parseCurrencyRightToLeft(e.target.value);
+                                  if (isNaN(val) || val < 0) {
+                                    toast.error('Informe um valor numérico válido para Frete Forn');
+                                    return;
+                                  }
+                                  updated.forEach((p, idx) => {
+                                    if (p.id === product.id) {
+                                      updated[idx] = { ...updated[idx], freteFornecedor2: val };
+                                    }
+                                  });
+                                  setSelectedProducts(updated);
+                                }}
+                                onInput={(e) => {
+                                  const target = e.target as HTMLInputElement;
+                                  target.value = formatCurrencyRightToLeft(target.value);
+                                }}
+                                inputMode="numeric"
+                                pattern="[0-9.,]*"
+                                placeholder="0,00"
+                                className="flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300 hover:border-gray-400 focus:border-blue-500"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                value={formatCurrencyRightToLeft(String((product.freteFornecedor3 ?? 0) * 100))}
+                                onChange={(e) => {
+                                  const updated = [...selectedProducts];
+                                  const val = parseCurrencyRightToLeft(e.target.value);
+                                  if (isNaN(val) || val < 0) {
+                                    toast.error('Informe um valor numérico válido para Frete Forn');
+                                    return;
+                                  }
+                                  updated.forEach((p, idx) => {
+                                    if (p.id === product.id) {
+                                      updated[idx] = { ...updated[idx], freteFornecedor3: val };
+                                    }
+                                  });
+                                  setSelectedProducts(updated);
+                                }}
+                                onInput={(e) => {
+                                  const target = e.target as HTMLInputElement;
+                                  target.value = formatCurrencyRightToLeft(target.value);
+                                }}
+                                inputMode="numeric"
+                                pattern="[0-9.,]*"
+                                placeholder="0,00"
+                                className="flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300 hover:border-gray-400 focus:border-blue-500"
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        
+                        {/* Coluna Frete Cliente com 3 campos */}
+                        <td className="px-2 py-3" style={{ width: '80px', minWidth: '80px' }}>
+                          <div className="grid grid-rows-3 gap-1 items-center">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                value={formatCurrencyRightToLeft(String((product.freteCliente1 ?? 0) * 100))}
+                                onChange={(e) => {
+                                  const updated = [...selectedProducts];
+                                  const val = parseCurrencyRightToLeft(e.target.value);
+                                  if (isNaN(val) || val < 0) {
+                                    toast.error('Informe um valor numérico válido para Frete Cliente');
+                                    return;
+                                  }
+                                  updated.forEach((p, idx) => {
+                                    if (p.id === product.id) {
+                                      updated[idx] = { ...updated[idx], freteCliente1: val };
+                                    }
+                                  });
+                                  setSelectedProducts(updated);
+                                }}
+                                onInput={(e) => {
+                                  const target = e.target as HTMLInputElement;
+                                  target.value = formatCurrencyRightToLeft(target.value);
+                                }}
+                                inputMode="numeric"
+                                pattern="[0-9.,]*"
+                                placeholder="0,00"
+                                className="flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300 hover:border-gray-400 focus:border-blue-500"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                value={formatCurrencyRightToLeft(String((product.freteCliente2 ?? 0) * 100))}
+                                onChange={(e) => {
+                                  const updated = [...selectedProducts];
+                                  const val = parseCurrencyRightToLeft(e.target.value);
+                                  if (isNaN(val) || val < 0) {
+                                    toast.error('Informe um valor numérico válido para Frete Cliente');
+                                    return;
+                                  }
+                                  updated.forEach((p, idx) => {
+                                    if (p.id === product.id) {
+                                      updated[idx] = { ...updated[idx], freteCliente2: val };
+                                    }
+                                  });
+                                  setSelectedProducts(updated);
+                                }}
+                                onInput={(e) => {
+                                  const target = e.target as HTMLInputElement;
+                                  target.value = formatCurrencyRightToLeft(target.value);
+                                }}
+                                inputMode="numeric"
+                                pattern="[0-9.,]*"
+                                placeholder="0,00"
+                                className="flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300 hover:border-gray-400 focus:border-blue-500"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                value={formatCurrencyRightToLeft(String((product.freteCliente3 ?? 0) * 100))}
+                                onChange={(e) => {
+                                  const updated = [...selectedProducts];
+                                  const val = parseCurrencyRightToLeft(e.target.value);
+                                  if (isNaN(val) || val < 0) {
+                                    toast.error('Informe um valor numérico válido para Frete Cliente');
+                                    return;
+                                  }
+                                  updated.forEach((p, idx) => {
+                                    if (p.id === product.id) {
+                                      updated[idx] = { ...updated[idx], freteCliente3: val };
+                                    }
+                                  });
+                                  setSelectedProducts(updated);
+                                }}
+                                onInput={(e) => {
+                                  const target = e.target as HTMLInputElement;
+                                  target.value = formatCurrencyRightToLeft(target.value);
+                                }}
+                                inputMode="numeric"
+                                pattern="[0-9.,]*"
+                                placeholder="0,00"
+                                className="flex-1 px-1 h-7 text-xs text-right border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300 hover:border-gray-400 focus:border-blue-500"
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        
+                        {/* Coluna CUSTO calculada */}
+                        <td className="px-2 py-3" style={{ width: '90px', minWidth: '90px' }}>
                           <div className="grid grid-rows-3 gap-1">
-                            {/* Primeiro campo de fator */}
+                            <div className="flex items-center gap-1">
+                              <div className="flex-1 text-xs text-right px-1 h-7 bg-gray-50 rounded border flex items-center justify-end">
+                                {formatSubtotalCurrency(custoCalculado1)}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="flex-1 text-xs text-right px-1 h-7 bg-gray-50 rounded border flex items-center justify-end">
+                                {formatSubtotalCurrency(custoCalculado2)}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="flex-1 text-xs text-right px-1 h-7 bg-gray-50 rounded border flex items-center justify-end">
+                                {formatSubtotalCurrency(custoCalculado3)}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        
+                        {/* inputs de preço unit movidos para a coluna Fator */}
+                        
+                        {/* coluna removida: Preço Unitário (calculado) */}
+
+                        {/* Coluna Fator com 3 campos (alinhada sob cabeçalho Fator) e inputs de preço unit inseridos */}
+                        <td className="px-2 py-3" style={{ width: '70px', minWidth: '70px' }}>
+                          <div className="grid grid-rows-3 gap-1 items-center">
                             <div className="flex items-center gap-1">
                               <select
                                 value={product.tabelaFator1 || ''}
                                 onChange={(e) => {
                                   const updatedProducts = [...selectedProducts];
                                   const nomeTabela = e.target.value;
-                                  const quantidade = product.quantidade1 || 0;
+                                  const quantidade = (product.quantity ?? product.quantity1 ?? product.quantidade1 ?? 0);
                                   const fatorCalculado = nomeTabela ? obterFatorPorQuantidade(nomeTabela, quantidade) : 1;
-
-                                  // Atualizar todos os produtos com o mesmo ID
                                   updatedProducts.forEach((p, index) => {
                                     if (p.id === product.id) {
                                       updatedProducts[index] = {
@@ -3206,7 +3491,6 @@ export default function OrcamentoForm() {
                                       };
                                     }
                                   });
-
                                   setSelectedProducts(updatedProducts);
                                 }}
                                 disabled={isViewOnly}
@@ -3224,18 +3508,14 @@ export default function OrcamentoForm() {
                                 ))}
                               </select>
                             </div>
-
-                            {/* Segundo campo de fator */}
                             <div className="flex items-center gap-1">
                               <select
                                 value={product.tabelaFator2 || ''}
                                 onChange={(e) => {
                                   const updatedProducts = [...selectedProducts];
                                   const nomeTabela = e.target.value;
-                                  const quantidade = product.quantidade2 || 0;
+                                  const quantidade = (product.quantity2 ?? product.quantidade2 ?? 0);
                                   const fatorCalculado = nomeTabela ? obterFatorPorQuantidade(nomeTabela, quantidade) : 1;
-
-                                  // Atualizar todos os produtos com o mesmo ID
                                   updatedProducts.forEach((p, index) => {
                                     if (p.id === product.id) {
                                       updatedProducts[index] = {
@@ -3245,15 +3525,10 @@ export default function OrcamentoForm() {
                                       };
                                     }
                                   });
-
                                   setSelectedProducts(updatedProducts);
                                 }}
                                 disabled={isViewOnly}
-                                className={`flex-1 px-1 h-7 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                                  isViewOnly 
-                                    ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed' 
-                                    : 'border-gray-300 hover:border-gray-400 focus:border-blue-500'
-                                }`}
+                                className={`flex-1 px-1 h-7 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300 hover:border-gray-400 focus:border-blue-500`}
                               >
                                 <option value="">Selecione</option>
                                 {tabelasFator.map((tabela) => (
@@ -3263,18 +3538,14 @@ export default function OrcamentoForm() {
                                 ))}
                               </select>
                             </div>
-
-                            {/* Terceiro campo de fator */}
                             <div className="flex items-center gap-1">
                               <select
                                 value={product.tabelaFator3 || ''}
                                 onChange={(e) => {
                                   const updatedProducts = [...selectedProducts];
                                   const nomeTabela = e.target.value;
-                                  const quantidade = product.quantidade3 || 0;
+                                  const quantidade = (product.quantity3 ?? product.quantidade3 ?? 0);
                                   const fatorCalculado = nomeTabela ? obterFatorPorQuantidade(nomeTabela, quantidade) : 1;
-
-                                  // Atualizar todos os produtos com o mesmo ID
                                   updatedProducts.forEach((p, index) => {
                                     if (p.id === product.id) {
                                       updatedProducts[index] = {
@@ -3284,15 +3555,10 @@ export default function OrcamentoForm() {
                                       };
                                     }
                                   });
-
                                   setSelectedProducts(updatedProducts);
                                 }}
                                 disabled={isViewOnly}
-                                className={`flex-1 px-1 h-7 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                                  isViewOnly 
-                                    ? 'border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed' 
-                                    : 'border-gray-300 hover:border-gray-400 focus:border-blue-500'
-                                }`}
+                                className="flex-1 px-1 h-7 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 border-gray-300 hover:border-gray-400 focus:border-blue-500"
                               >
                                 <option value="">Selecione</option>
                                 {tabelasFator.map((tabela) => (
@@ -3304,28 +3570,47 @@ export default function OrcamentoForm() {
                             </div>
                           </div>
                         </td>
+
+                        {/* coluna removida: PREÇO UNIT (calculado) */}
+                        
+                        {/* coluna removida: Fator (ao lado do Sub-total) */}
                         
                         {/* Coluna R$ Sub-Total com 3 campos e rótulos */}
-                        <td className="px-2 py-3" style={{ width: '100px', minWidth: '100px' }}>
+                        <td className="px-2 py-3" style={{ width: '80px', minWidth: '80px' }}>
                           <div className="grid grid-rows-3 gap-1">
-                            {/* Primeiro subtotal com rótulo lateral */}
                             <div className="flex items-center gap-1">
-                              <div className="flex-1 text-xs font-medium text-gray-900 text-right px-1 h-7 bg-gray-50 rounded border flex items-center justify-end">
-                                {formatSubtotalCurrency(subtotal1)}
+                              <div className="flex-1 text-xs text-right px-1 h-7 bg-gray-50 rounded border flex items-center justify-end">
+                                {formatSubtotalCurrency((quantidade1 > 0) ? (subtotalCalculado1 / quantidade1) : 0)}
                               </div>
                             </div>
-                            
-                            {/* Segundo subtotal com rótulo lateral */}
                             <div className="flex items-center gap-1">
-                              <div className="flex-1 text-xs font-medium text-gray-900 text-right px-1 h-7 bg-gray-50 rounded border flex items-center justify-end">
-                                {formatSubtotalCurrency(subtotal2)}
+                              <div className="flex-1 text-xs text-right px-1 h-7 bg-gray-50 rounded border flex items-center justify-end">
+                                {formatSubtotalCurrency((quantidade2 > 0) ? (subtotalCalculado2 / quantidade2) : 0)}
                               </div>
                             </div>
-
-                            {/* Terceiro subtotal com rótulo lateral */}
+                            <div className="flex items-center gap-1">
+                              <div className="flex-1 text-xs text-right px-1 h-7 bg-gray-50 rounded border flex items-center justify-end">
+                                {formatSubtotalCurrency(((product.quantity3 || 0) > 0) ? (subtotalCalculado3 / (product.quantity3 || 0)) : 0)}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        
+                        <td className="px-2 py-3" style={{ width: '90px', minWidth: '90px' }}>
+                          <div className="grid grid-rows-3 gap-1">
                             <div className="flex items-center gap-1">
                               <div className="flex-1 text-xs font-medium text-gray-900 text-right px-1 h-7 bg-gray-50 rounded border flex items-center justify-end">
-                                {formatSubtotalCurrency((product.quantity3 || 0) * precoVendaReal3)}
+                                {formatSubtotalCurrency(subtotalCalculado1)}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="flex-1 text-xs font-medium text-gray-900 text-right px-1 h-7 bg-gray-50 rounded border flex items-center justify-end">
+                                {formatSubtotalCurrency(subtotalCalculado2)}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="flex-1 text-xs font-medium text-gray-900 text-right px-1 h-7 bg-gray-50 rounded border flex items-center justify-end">
+                                {formatSubtotalCurrency(subtotalCalculado3)}
                               </div>
                             </div>
                           </div>
@@ -3378,41 +3663,132 @@ export default function OrcamentoForm() {
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <ConfigSearchInput
-                label="Validade da Proposta"
-                value={orcamento.validade_proposta || ''}
-                onChange={(value) => setOrcamento({ ...orcamento, validade_proposta: value })}
-                disabled={isViewOnly}
-                categoria="orcamento"
-                placeholder="Ex: 15 dias, 30 dias..."
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Validade da Proposta</label>
+                <select
+                  value={orcamento.validade_proposta || ''}
+                  onChange={(e) => setOrcamento({ ...orcamento, validade_proposta: e.target.value })}
+                  disabled={isViewOnly}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">Selecione</option>
+                  <option value="10 dias">10 dias</option>
+                  <option value="20 dias">20 dias</option>
+                  <option value="30 dias">30 dias</option>
+                  <option value="50 dias">50 dias</option>
+                  <option value="60 dias">60 dias</option>
+                </select>
+              </div>
               
-              <ConfigSearchInput
-                label="Prazo de Entrega"
-                value={orcamento.prazo_entrega || ''}
-                onChange={(value) => setOrcamento({ ...orcamento, prazo_entrega: value })}
-                disabled={isViewOnly}
-                categoria="orcamento"
-                placeholder="Ex: 15 dias úteis, 20 dias úteis..."
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Prazo de Entrega</label>
+                <select
+                  value={orcamento.prazo_entrega || ''}
+                  onChange={(e) => setOrcamento({ ...orcamento, prazo_entrega: e.target.value })}
+                  disabled={isViewOnly}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">Selecione</option>
+                  <option value="5 dias úteis">5 dias úteis</option>
+                  <option value="7 / 10 dias úteis">7 / 10 dias úteis</option>
+                  <option value="12 dias úteis">12 dias úteis</option>
+                  <option value="15 dias úteis">15 dias úteis</option>
+                  <option value="15 / 20 dias úteis">15 / 20 dias úteis</option>
+                  <option value="20 dias úteis">20 dias úteis</option>
+                  <option value="25 dias úteis">25 dias úteis</option>
+                  <option value="30 dias úteis">30 dias úteis</option>
+                  <option value="40 dias úteis">40 dias úteis</option>
+                  <option value="50 dias úteis">50 dias úteis</option>
+                  <option value="60 dias úteis">60 dias úteis</option>
+                  <option value="120 dias úteis">120 dias úteis</option>
+                  <option value="3 dias úteis">3 dias úteis</option>
+                  <option value="4 dias úteis">4 dias úteis</option>
+                </select>
+              </div>
               
-              <ConfigSearchInput
-                label="Forma de Pagamento"
-                value={orcamento.forma_pagamento || ''}
-                onChange={(value) => setOrcamento({ ...orcamento, forma_pagamento: value })}
-                disabled={isViewOnly}
-                categoria="orcamento"
-                placeholder="Ex: À vista, 30 dias, Parcelado..."
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Forma de Pagamento</label>
+                <select
+                  value={orcamento.forma_pagamento || ''}
+                  onChange={(e) => setOrcamento({ ...orcamento, forma_pagamento: e.target.value })}
+                  disabled={isViewOnly}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">Selecione</option>
+                  <option value="50% no pedido e 50% quando a mercadoria estiver pronta, disponível para entrega ou retirada do cliente (pix, depósito ou boleto). Caso precisem de prazo para pagamento, informe-nos para que possamos verificar a possibilidade e adequar o valor">50% no pedido e 50% quando a mercadoria estiver pronta, disponível para entrega ou retirada do cliente (pix, depósito ou boleto). Caso precisem de prazo para pagamento, informe-nos para que possamos verificar a possibilidade e adequar o valor</option>
+                  <option value="50% no pedido e 50% em até 07 dias após emissão da NF">50% no pedido e 50% em até 07 dias após emissão da NF</option>
+                  <option value="50% com 30 dias e 50% com 60 dias">50% com 30 dias e 50% com 60 dias</option>
+                  <option value="50% no pedido e 50% em até 10 dias após emissão da NF">50% no pedido e 50% em até 10 dias após emissão da NF</option>
+                  <option value="50% no pedido e 50% em até 15 dias após emissão da NF">50% no pedido e 50% em até 15 dias após emissão da NF</option>
+                  <option value="50% no pedido e 50% em até 30 dias após emissão da NF">50% no pedido e 50% em até 30 dias após emissão da NF</option>
+                  <option value="50% no pedido e 50% em até 45 dias após emissão da NF">50% no pedido e 50% em até 45 dias após emissão da NF</option>
+                  <option value="50% no pedido e 2 vezes no cartão de crédito para retirada">50% no pedido e 2 vezes no cartão de crédito para retirada</option>
+                  <option value="50% no pedido e 3 vezes no cartão de crédito para retirada">50% no pedido e 3 vezes no cartão de crédito para retirada</option>
+                  <option value="50% no pedido e 4 vezes no cartão de crédito para retirada">50% no pedido e 4 vezes no cartão de crédito para retirada</option>
+                  <option value="50% no pedido, 25% 15 dias após a emissão da NF e 25% após 30 dias da emissão da NF">50% no pedido, 25% 15 dias após a emissão da NF e 25% após 30 dias da emissão da NF</option>
+                  <option value="50% no pedido, 25% 20 dias após a emissão da NF e 25% após 40 dias da emissão da NF">50% no pedido, 25% 20 dias após a emissão da NF e 25% após 40 dias da emissão da NF</option>
+                  <option value="50% no pedido, 25% 30 dias após a emissão da NF e 25% após 60 dias da emissão da NF">50% no pedido, 25% 30 dias após a emissão da NF e 25% após 60 dias da emissão da NF</option>
+                  <option value="50% com 5 dias após a emissão da NF + 25% com 28 dias após emissão da NF + 25% com 42 dias após emissão da NF">50% com 5 dias após a emissão da NF + 25% com 28 dias após emissão da NF + 25% com 42 dias após emissão da NF</option>
+                  <option value="50% no pedido + 20D + 40D + 60D após abertura do pedido">50% no pedido + 20D + 40D + 60D após abertura do pedido</option>
+                  <option value="50% no pedido + 30D + 60D + 90D após abertura do pedido">50% no pedido + 30D + 60D + 90D após abertura do pedido</option>
+                  <option value="100% No fechamento do pedido">100% No fechamento do pedido</option>
+                  <option value="100% na entrega do pedido">100% na entrega do pedido</option>
+                  <option value="100% 03 dias após emissão da NF">100% 03 dias após emissão da NF</option>
+                  <option value="100% 05 dias após emissão da NF">100% 05 dias após emissão da NF</option>
+                  <option value="100% 07 dias após emissão da NF">100% 07 dias após emissão da NF</option>
+                  <option value="100% 10 dias após emissão da NF">100% 10 dias após emissão da NF</option>
+                  <option value="100% 15 dias após emissão da NF">100% 15 dias após emissão da NF</option>
+                  <option value="100% 20 dias após emissão da NF">100% 20 dias após emissão da NF</option>
+                  <option value="100% 21 dias após emissão da NF">100% 21 dias após emissão da NF</option>
+                  <option value="100% 28 dias após emissão da NF">100% 28 dias após emissão da NF</option>
+                  <option value="100% 30 dias após emissão da NF">100% 30 dias após emissão da NF</option>
+                  <option value="100% 35 dias após emissão da NF">100% 35 dias após emissão da NF</option>
+                  <option value="100% 40 dias após emissão da NF">100% 40 dias após emissão da NF</option>
+                  <option value="100% 45 dias após emissão da NF">100% 45 dias após emissão da NF</option>
+                  <option value="100% 50 dias após emissão da NF">100% 50 dias após emissão da NF</option>
+                  <option value="100% 60 dias após emissão da NF">100% 60 dias após emissão da NF</option>
+                  <option value="100% 10 DDL após a entrega depósito em conta corrente">100% 10 DDL após a entrega depósito em conta corrente</option>
+                  <option value="Cartão de débito">Cartão de débito</option>
+                  <option value="1vez no Cartão de Crédito">1vez no Cartão de Crédito</option>
+                  <option value="2 vezes no Cartão de Crédito">2 vezes no Cartão de Crédito</option>
+                  <option value="3 vezes no cartão de crédito">3 vezes no cartão de crédito</option>
+                  <option value="4 vezes no Cartão de Crédito">4 vezes no Cartão de Crédito</option>
+                  <option value="15 / 30 dias após entrega">15 / 30 dias após entrega</option>
+                  <option value="15 / 45 dias após entrega">15 / 45 dias após entrega</option>
+                  <option value="28 / 42 dias após a entrega">28 / 42 dias após a entrega</option>
+                  <option value="30% antecipado após o recebimento da Nota Fiscal, em 72 hrs, e o restante após o recebimento da mercadoria, 72 hrs">30% antecipado após o recebimento da Nota Fiscal, em 72 hrs, e o restante após o recebimento da mercadoria, 72 hrs</option>
+                  <option value="30 e 60 dias à partir da disponibilidade do produto para entrega">30 e 60 dias à partir da disponibilidade do produto para entrega</option>
+                  <option value="Entrada / 20 / 40 dias após emissão da NF">Entrada / 20 / 40 dias após emissão da NF</option>
+                  <option value="Entrada / 30 / 60 dias após abertura do pedido">Entrada / 30 / 60 dias após abertura do pedido</option>
+                  <option value="Entrada / 30 / 60 / 90 dias após abertura do pedido">Entrada / 30 / 60 / 90 dias após abertura do pedido</option>
+                  <option value="Entrada via depósito + 4x no cartão de crédito">Entrada via depósito + 4x no cartão de crédito</option>
+                  <option value="50% via pix ou transferência + 25% via pix ou transferência + 25% cartão de crédito">50% via pix ou transferência + 25% via pix ou transferência + 25% cartão de crédito</option>
+                  <option value="40% no pedido + 30% com 20 dias + 30% com 40 dias via boleto">40% no pedido + 30% com 20 dias + 30% com 40 dias via boleto</option>
+                  <option value="30 / 60 / 90 dias após após emissão da NF">30 / 60 / 90 dias após após emissão da NF</option>
+                  <option value="100% 120 dias após emissão da NF">100% 120 dias após emissão da NF</option>
+                  <option value="Pagamento 50% no pedido e 50% com prazo de até 10 dias após a entrega">Pagamento 50% no pedido e 50% com prazo de até 10 dias após a entrega</option>
+                </select>
+              </div>
               
-              <ConfigSearchInput
-                label="Opção de Frete"
-                value={orcamento.opcao_frete || ''}
-                onChange={(value) => setOrcamento({ ...orcamento, opcao_frete: value })}
-                disabled={isViewOnly}
-                categoria="orcamento"
-                placeholder="Ex: Cliente retira, Frete CIF..."
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Opção de Frete</label>
+                <select
+                  value={orcamento.opcao_frete || ''}
+                  onChange={(e) => setOrcamento({ ...orcamento, opcao_frete: e.target.value })}
+                  disabled={isViewOnly}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">Selecione</option>
+                  <option value="Cliente retira">Cliente retira</option>
+                  <option value="Frete CIF - Incluso">Frete CIF - Incluso</option>
+                  <option value="Frete CIF - Incluso para Grande Vitória, exceto Cariacica, Viana e Guarapari">Frete CIF - Incluso para Grande Vitória, exceto Cariacica, Viana e Guarapari</option>
+                  <option value="Frete FOB - Não incluso, por conta do cliente">Frete FOB - Não incluso, por conta do cliente</option>
+                </select>
+              </div>
             </div>
             
             <div className="mt-6">

@@ -1,6 +1,7 @@
-import express, { Request, Response } from 'express';
-import { QuoteRequest, QuoteStatus, PaginatedResponse } from '../../shared/types.js';
-import { supabaseAdmin } from '../../supabase/server.js';
+import express from 'express';
+import type { Request, Response } from 'express';
+// import { QuoteRequest, QuoteStatus, PaginatedResponse } from '../../shared/types.ts';
+import { supabaseAdmin } from '../../supabase/server.ts';
 
 const router = express.Router();
 

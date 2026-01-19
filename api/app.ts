@@ -8,6 +8,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.ts';
+import consultoresRoutes from './routes/consultores.ts';
 import productsRoutes from './routes/products.ts';
 import quotesRoutes from './routes/quotes.ts';
 import xbzRoutes from './routes/xbz.ts';
@@ -30,6 +31,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
  * API Routes
  */
 app.use('/api/auth', authRoutes);
+app.use('/api/consultores', consultoresRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/quotes', quotesRoutes);
 app.use('/api/xbz', xbzRoutes);

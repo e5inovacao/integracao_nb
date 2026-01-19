@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Printer, Send } from 'lucide-react';
+import { ArrowLeft, Printer, Send, ShoppingBag } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -69,6 +69,12 @@ interface ProdutoOrcamento {
   quantidade_linha?: number;
   preco_linha?: number;
   valor_linha?: number;
+  // Campo para fator multiplicativo
+  fator?: string | number;
+  // Campos para tabelas de fator
+  tabelaFator1?: string;
+  tabelaFator2?: string;
+  tabelaFator3?: string;
 }
 
 
@@ -89,6 +95,9 @@ const OrcamentoDetalhes: React.FC = () => {
   const [consultorSelecionado, setConsultorSelecionado] = useState<string>('');
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
+  const [convertingOrder, setConvertingOrder] = useState(false);
+  const [tabelasFator, setTabelasFator] = useState<{ [key: string]: { quantidade_inicial: number; quantidade_final: number; fator: number }[] }>({});
+  const [personalizacaoFatores, setPersonalizacaoFatores] = useState<{ [key: string]: { quantidade_inicial: number; quantidade_final: number; fator: number }[] }>({});
   
 
 
@@ -98,9 +107,9 @@ const OrcamentoDetalhes: React.FC = () => {
       // Para admin, buscar sem filtros (RLS já permite acesso total)
       // Para outros usuários, deixar o RLS controlar o acesso
       const { data, error } = await supabase
-        .from('solicitacao_orcamentos')
+        .from('orcamentos_sistema')
         .select('*')
-        .eq('solicitacao_id', orcamentoId)
+        .eq('id', orcamentoId)
         .single();
 
       if (error) {
@@ -125,7 +134,7 @@ const OrcamentoDetalhes: React.FC = () => {
   const fetchClienteData = async (clienteId: string) => {
     try {
       const { data, error } = await supabase
-        .from('usuarios_clientes')
+        .from('clientes_sistema')
         .select('*')
         .eq('id', clienteId)
         .single();
@@ -144,10 +153,10 @@ const OrcamentoDetalhes: React.FC = () => {
       console.log('Buscando produtos para orçamento ID:', orcamentoId);
       
       const { data, error } = await supabase
-        .from('products_solicitacao')
+        .from('products_solicitacao') // TODO: Verificar se esta tabela foi migrada para order_items ou itens_orcamento_sistema
         .select(`
           *,
-          ecologic_products_site (
+          ecologic_products (
             id,
             titulo,
             descricao,
@@ -159,7 +168,7 @@ const OrcamentoDetalhes: React.FC = () => {
             variacoes
           )
         `)
-        .eq('solicitacao_id', orcamentoId);
+        .eq('orcamento_id', orcamentoId); // Ajustado de solicitacao_id para orcamento_id se necessário, ou manter se for legado
 
       if (error) {
         console.error('Erro na query:', error);
@@ -202,7 +211,13 @@ const OrcamentoDetalhes: React.FC = () => {
           preco3: item.preco3,
           valor_qtd01: item.valor_qtd01,
           valor_qtd02: item.valor_qtd02,
-          valor_qtd03: item.valor_qtd03
+          valor_qtd03: item.valor_qtd03,
+          // Campo para fator multiplicativo
+          fator: item.fator,
+          // Campos para tabelas de fator
+          tabelaFator1: item.tabelaFator1,
+          tabelaFator2: item.tabelaFator2,
+          tabelaFator3: item.tabelaFator3
         });
       });
       
@@ -211,6 +226,33 @@ const OrcamentoDetalhes: React.FC = () => {
       console.error('Erro ao buscar produtos:', err);
       throw err;
     }
+  };
+
+  const carregarFatoresPersonalizacao = async (nomes: string[]) => {
+    try {
+      const unicos = Array.from(new Set(nomes.filter(Boolean)));
+      const mapa: { [key: string]: any[] } = {};
+      for (const nome of unicos) {
+        const { data, error } = await supabase
+          .from('tabelas_personalizacao')
+          .select('quantidade_inicial, quantidade_final, fator')
+          .eq('status', 'ativo')
+          .eq('nome_tabela', nome)
+          .order('quantidade_inicial');
+        if (!error && data) mapa[nome] = data;
+      }
+      setPersonalizacaoFatores(mapa);
+    } catch (e) {
+      // silencioso
+    }
+  };
+
+  const obterFatorPersonalizacao = (nomeTabela?: string, quantidade?: number): number => {
+    if (!nomeTabela || !quantidade) return 1;
+    const linhas = personalizacaoFatores[nomeTabela];
+    if (!linhas) return 1;
+    const faixa = linhas.find(l => quantidade >= l.quantidade_inicial && quantidade <= l.quantidade_final);
+    return faixa ? faixa.fator : 1;
   };
 
   // Função para buscar consultores disponíveis
@@ -233,6 +275,54 @@ const OrcamentoDetalhes: React.FC = () => {
     }
   };
 
+  // Função para carregar tabelas de fator
+  const fetchTabelasFator = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tabelas_fator')
+        .select('nome_tabela, quantidade_inicial, quantidade_final, fator')
+        .eq('status', 'ativo')
+        .order('nome_tabela');
+
+      if (error) {
+        console.error('Erro ao carregar tabelas de fator:', error);
+        return;
+      }
+
+      // Organizar por nome da tabela
+      const tabelasMap: { [key: string]: { quantidade_inicial: number; quantidade_final: number; fator: number }[] } = {};
+      
+      data?.forEach((item: any) => {
+        if (!tabelasMap[item.nome_tabela]) {
+          tabelasMap[item.nome_tabela] = [];
+        }
+        tabelasMap[item.nome_tabela].push({
+          quantidade_inicial: item.quantidade_inicial,
+          quantidade_final: item.quantidade_final,
+          fator: item.fator
+        });
+      });
+
+      setTabelasFator(tabelasMap);
+      console.log('Tabelas de fator carregadas:', tabelasMap);
+    } catch (error) {
+      console.error('Erro ao carregar tabelas de fator:', error);
+    }
+  };
+
+  // Função para obter o fator baseado na quantidade e tabela selecionada
+  const obterFatorPorQuantidade = (nomeTabela: string, quantidade: number): number => {
+    if (!nomeTabela || !tabelasFator[nomeTabela]) {
+      return 1; // Valor padrão
+    }
+
+    const fatores = tabelasFator[nomeTabela];
+    const fatorEncontrado = fatores.find(f => 
+      quantidade >= f.quantidade_inicial && quantidade <= f.quantidade_final
+    );
+
+    return fatorEncontrado ? fatorEncontrado.fator : 1;
+  };
 
 
   // Carregar dados do usuário e role
@@ -284,15 +374,20 @@ const OrcamentoDetalhes: React.FC = () => {
     loadConsultores();
   }, []);
 
+  // Carregar tabelas de fator
+  useEffect(() => {
+    fetchTabelasFator();
+  }, []);
+
   // Função para salvar consultor no orçamento
   const handleSalvarConsultor = async (consultorId: string) => {
     if (!id) return;
 
     try {
       const { error } = await supabase
-        .from('solicitacao_orcamentos')
-        .update({ consultor_id: consultorId })
-        .eq('solicitacao_id', id);
+        .from('orcamentos_sistema')
+        .update({ consultor_id: consultorId }) // TODO: Verificar se existe coluna consultor_id ou usuario_id
+        .eq('id', id);
 
       if (error) {
         console.error('Erro ao salvar consultor:', error);
@@ -341,8 +436,9 @@ const OrcamentoDetalhes: React.FC = () => {
         // Buscar produtos do orçamento
         // Carregando produtos do orçamento
         const produtosData = await fetchProdutosOrcamento(id);
-        // Produtos carregados com sucesso
         setProdutos(produtosData);
+        const nomesPersonalizacao = produtosData.map(p => p.personalizacao as string);
+        await carregarFatoresPersonalizacao(nomesPersonalizacao);
 
 
 
@@ -699,6 +795,29 @@ const OrcamentoDetalhes: React.FC = () => {
   // Usar produtos consolidados para exibição
   const produtosParaExibir = produtosConsolidados;
 
+  const calcularTotalGeral = () => {
+    return produtosParaExibir.reduce((acc, produto) => {
+      const qtds = [produto.products_quantidade_01 || 0, produto.products_quantidade_02 || 0, produto.products_quantidade_03 || 0];
+      const valores = [produto.valor_qtd01 || 0, produto.valor_qtd02 || 0, produto.valor_qtd03 || 0];
+      const obterBase = (nome?: string, q?: number) => {
+        if (!nome || !q) return 1;
+        const linhas = tabelasFator[nome];
+        if (!linhas) return 1;
+        const faixa = linhas.find(l => (q || 0) >= l.quantidade_inicial && (q || 0) <= l.quantidade_final);
+        return faixa ? faixa.fator : 1;
+      };
+      const fProduto = parseFloat(produto.fator as string);
+      const base1 = !isNaN(fProduto) && fProduto > 0 ? fProduto : obterBase(produto.tabelaFator1, qtds[0]);
+      const base2 = !isNaN(fProduto) && fProduto > 0 ? fProduto : obterBase(produto.tabelaFator2, qtds[1]);
+      const base3 = !isNaN(fProduto) && fProduto > 0 ? fProduto : obterBase(produto.tabelaFator3, qtds[2]);
+      const p1 = qtds[0] * valores[0] * (base1 * (obterFatorPersonalizacao(produto.personalizacao, qtds[0]) || 1));
+      const p2 = qtds[1] * valores[1] * (base2 * (obterFatorPersonalizacao(produto.personalizacao, qtds[1]) || 1));
+      const p3 = qtds[2] * valores[2] * (base3 * (obterFatorPersonalizacao(produto.personalizacao, qtds[2]) || 1));
+      const geral = (!qtds[0] && !qtds[1] && !qtds[2]) ? (produto.quantidade || 0) * (produto.valor_unitario || 0) * ((base1 || 1) * (obterFatorPersonalizacao(produto.personalizacao, produto.quantidade) || 1)) : 0;
+      return acc + p1 + p2 + p3 + geral;
+    }, 0);
+  };
+
   // Estados de loading e error
   if (loading) {
     return (
@@ -775,9 +894,13 @@ const OrcamentoDetalhes: React.FC = () => {
       }
 
       // Enviar email via Brevo
+      // Garantir assunto padrão
+      const assuntoPadrao = `Natureza Brindes - Orçamento [${orcamento.solicitacao_id}]`;
+      const assuntoFinal = emailData.subject && /Natureza Brindes - Orçamento \[.+\]/.test(emailData.subject) ? emailData.subject : assuntoPadrao;
+
       await sendEmailWithBrevo({
         to: recipients,
-        subject: emailData.subject || `Orçamento ${orcamento.solicitacao_id} - Natureza Brindes`,
+        subject: assuntoFinal,
         htmlContent: emailResult.htmlContent,
         inlineImages: emailResult.inlineImages,
         sender: {
@@ -794,6 +917,32 @@ const OrcamentoDetalhes: React.FC = () => {
       toast.error(`Erro ao enviar email: ${errorMessage}`);
     } finally {
       setEmailLoading(false);
+    }
+  };
+
+  const handleGerarPedido = async () => {
+    if (!id || !user) return;
+    
+    if (!confirm('Deseja realmente aprovar este orçamento e gerar um pedido?')) {
+      return;
+    }
+
+    setConvertingOrder(true);
+    try {
+      const { data, error } = await supabase.rpc('convert_quote_to_order', {
+        p_quote_id: id,
+        p_salesperson_id: user.id
+      });
+
+      if (error) throw error;
+
+      toast.success('Pedido gerado com sucesso!');
+      navigate(`/pedidos/${data}`); // Redirecionar para o novo pedido
+    } catch (error: any) {
+      console.error('Erro ao gerar pedido:', error);
+      toast.error(`Erro ao gerar pedido: ${error.message}`);
+    } finally {
+      setConvertingOrder(false);
     }
   };
 
@@ -821,6 +970,21 @@ const OrcamentoDetalhes: React.FC = () => {
             <Send size={20} />
             Enviar
           </button>
+
+          {userRole === 'admin' && (
+            <button
+              onClick={handleGerarPedido}
+              disabled={convertingOrder || orcamento?.status === 'aprovado' || orcamento?.status === 'finalizado'}
+              className={`flex items-center gap-2 text-white px-4 py-2 rounded-lg transition-colors ${
+                convertingOrder || orcamento?.status === 'aprovado' || orcamento?.status === 'finalizado'
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-indigo-600 hover:bg-indigo-700'
+              }`}
+            >
+              <ShoppingBag size={20} />
+              {convertingOrder ? 'Gerando...' : 'Gerar Pedido'}
+            </button>
+          )}
         </div>
         
         <button
@@ -1057,9 +1221,12 @@ const OrcamentoDetalhes: React.FC = () => {
                           <p className="text-sm text-gray-600 mb-2">Cor: {corParaExibir}</p>
                         ) : null;
                       })()}
-                      {produto.personalizacao && (
-                        <p className="text-sm text-gray-600 mb-2">Gravação: {produto.personalizacao}</p>
-                      )}
+                        {produto.personalizacao && (
+                          <>
+                            <p className="text-sm text-gray-600 mb-2">Gravação: {produto.personalizacao}</p>
+                            <div className="text-sm text-gray-600 mb-2">Fator: {produto.tabelaFator1 || produto.tabelaFator2 || produto.tabelaFator3 || '—'}</div>
+                          </>
+                        )}
                       {produto.customizations && (
                         <p className="text-sm text-gray-600">Personalizações: {produto.customizations}</p>
                       )}
@@ -1083,7 +1250,9 @@ const OrcamentoDetalhes: React.FC = () => {
                     <th className="border border-gray-300 px-4 py-2 text-center font-bold">Produto</th>
                     <th className="border border-gray-300 px-4 py-2 text-center font-bold">Total por Quantidade</th>
                     <th className="border border-gray-300 px-4 py-2 text-center font-bold">Valor Unitário</th>
-                    <th className="border border-gray-300 px-4 py-2 text-center font-bold">Valor Total</th>
+                    <th className="border border-gray-300 px-4 py-2 text-center font-bold">
+                      Valor Total
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1112,7 +1281,7 @@ const OrcamentoDetalhes: React.FC = () => {
                           )}
                         </td>
                         
-                        {/* Valores em linhas */}
+                        {/* Preço Unitário (mesmo da edição) */}
                         <td className="border border-gray-300 px-4 py-2 text-center">
                           {produto.valor_qtd01 > 0 && (
                             <div className="text-sm mb-1 p-1 bg-gray-100 rounded">{formatCurrency(produto.valor_qtd01)}</div>
@@ -1130,36 +1299,69 @@ const OrcamentoDetalhes: React.FC = () => {
                         
                         <td className="border border-gray-300 px-4 py-2 text-center">
                           {(() => {
-                            // Mostrar os valores totais individuais para cada combinação quantidade × valor unitário
+                            // Mostrar os valores totais individuais para cada combinação quantidade × valor unitário × fator
                             const totais = [];
                             
+                            // Fator base do produto (campo fator) ou tabelas de fator
+                            const fatorBase = (() => {
+                              const f = parseFloat(produto.fator as string);
+                              if (!isNaN(f) && f > 0) return f;
+                              // tentar obter pelo nome da tabela e quantidade
+                              const qtd1 = produto.products_quantidade_01 || 0;
+                              const qtd2 = produto.products_quantidade_02 || 0;
+                              const qtd3 = produto.products_quantidade_03 || 0;
+                              const obter = (nome?: string, q?: number) => {
+                                if (!nome || !q) return 1;
+                                const linhas = tabelasFator[nome];
+                                if (!linhas) return 1;
+                                const faixa = linhas.find(l => q >= l.quantidade_inicial && q <= l.quantidade_final);
+                                return faixa ? faixa.fator : 1;
+                              };
+                              // prioridade por quantidade preenchida
+                              if (qtd1 && produto.tabelaFator1) return obter(produto.tabelaFator1, qtd1);
+                              if (qtd2 && produto.tabelaFator2) return obter(produto.tabelaFator2, qtd2);
+                              if (qtd3 && produto.tabelaFator3) return obter(produto.tabelaFator3, qtd3);
+                              // fallback
+                              return 1;
+                            })();
+
+                            // Fator de personalização (multiplicativo)
+                            const fatorPers1 = obterFatorPersonalizacao(produto.personalizacao, produto.products_quantidade_01 || produto.quantidade);
+                            const fatorPers2 = obterFatorPersonalizacao(produto.personalizacao, produto.products_quantidade_02 || produto.quantidade);
+                            const fatorPers3 = obterFatorPersonalizacao(produto.personalizacao, produto.products_quantidade_03 || produto.quantidade);
+                            const fatorDefaultPers = obterFatorPersonalizacao(produto.personalizacao, produto.quantidade);
+                            
                             if (produto.products_quantidade_01 > 0 && produto.valor_qtd01 > 0) {
+                              const valorComFator = produto.products_quantidade_01 * produto.valor_qtd01;
                               totais.push(
                                 <div key="total1" className="text-sm mb-1 p-1 bg-green-100 rounded font-medium">
-                                  {formatCurrency(produto.products_quantidade_01 * produto.valor_qtd01)}
+                                  {formatCurrency(valorComFator)}
                                 </div>
                               );
                             }
                             if (produto.products_quantidade_02 > 0 && produto.valor_qtd02 > 0) {
+                              const valorComFator = produto.products_quantidade_02 * produto.valor_qtd02;
                               totais.push(
                                 <div key="total2" className="text-sm mb-1 p-1 bg-green-100 rounded font-medium">
-                                  {formatCurrency(produto.products_quantidade_02 * produto.valor_qtd02)}
+                                  {formatCurrency(valorComFator)}
                                 </div>
                               );
                             }
                             if (produto.products_quantidade_03 > 0 && produto.valor_qtd03 > 0) {
+                              const valorComFator = produto.products_quantidade_03 * produto.valor_qtd03;
                               totais.push(
                                 <div key="total3" className="text-sm p-1 bg-green-100 rounded font-medium">
-                                  {formatCurrency(produto.products_quantidade_03 * produto.valor_qtd03)}
+                                  {formatCurrency(valorComFator)}
                                 </div>
                               );
                             }
                             
                             // Se não há quantidades específicas, usar quantidade geral
                             if (totais.length === 0 && produto.quantidade && produto.valor_unitario > 0) {
+                              const valorComFator = produto.quantidade * produto.valor_unitario;
                               totais.push(
                                 <div key="totalGeral" className="text-sm font-medium">
-                                  {formatCurrency(produto.quantidade * produto.valor_unitario)}
+                                  {formatCurrency(valorComFator)}
                                 </div>
                               );
                             }

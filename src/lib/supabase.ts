@@ -1,13 +1,17 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = 'https://dntlbhmljceaefycdsbc.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRudGxiaG1samNlYWVmeWNkc2JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxMDU4MDMsImV4cCI6MjA2MzY4MTgwM30.DyBPu5O9C8geyV6pliyIGkhwGegwV_9FQeKQ8prSdHY'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase credentials. Please check your .env file.')
+}
 
 // Configurações do cliente Supabase com tratamento de erros melhorado
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    autoRefreshToken: false, // COMPLETAMENTE desabilitado
-    persistSession: true,
+    autoRefreshToken: false,
+    persistSession: false,
     detectSessionInUrl: false,
     flowType: 'pkce',
     storage: {
@@ -66,6 +70,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         
         // Silenciar erros relacionados ao refresh token
         if (url.includes('/auth/v1/token') || error.message?.includes('refresh')) {
+          if (String(error?.message || '').includes('refresh_disabled')) {
+            return new Response(JSON.stringify({ error: 'refresh_disabled' }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' }
+            });
+          }
           console.warn('Erro de refresh token silenciado:', error.message);
           return new Response(JSON.stringify({ error: 'network_error' }), {
             status: 400,

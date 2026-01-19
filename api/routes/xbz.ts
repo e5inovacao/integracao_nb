@@ -1,7 +1,8 @@
-import { Router } from 'express';
-import xbzService from '../services/xbz.js';
+import express from 'express';
+import type { Request, Response } from 'express';
+import xbzService from '../services/xbz-simple.ts';
 
-const router = Router();
+const router = express.Router();
 
 // Buscar todos os produtos ecológicos da XBZ
 router.get('/ecological-products', async (req, res) => {

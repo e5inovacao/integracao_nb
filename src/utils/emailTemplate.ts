@@ -254,7 +254,7 @@ const generateEmailHTML = (orcamento: any, cliente: any, consultor: any, produto
                       <tr style="background: #f9fafb; font-weight: 700; font-size: 12px;">
                         <td style="border-bottom: 1px solid #e5e7eb;">Produto</td>
                         <td align="center" style="border-bottom: 1px solid #e5e7eb;">Qtd</td>
-                        <td align="center" style="border-bottom: 1px solid #e5e7eb;">Unit.</td>
+                        <td align="center" style="border-bottom: 1px solid #e5e7eb;">Preço Unitário</td>
                         <td align="center" style="border-bottom: 1px solid #e5e7eb;">Total</td>
                       </tr>
                       ${produto.products_quantidade_01 > 0 && produto.valor_qtd01 > 0 ? `
@@ -294,21 +294,21 @@ const generateEmailHTML = (orcamento: any, cliente: any, consultor: any, produto
                 </tr>
                 `).join('')}
                 
-                <!-- Informações de Frete, Validade e Prazo -->
+                <!-- Informações de Validade, Frete e Prazo -->
                 <tr>
                   <td style="padding: 0 20px;">
                     <table width="100%" cellpadding="4" cellspacing="0">
                       <tr>
                         <td class="stack" style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px;">
+                          <strong>Validade da proposta:</strong> ${orcamento.validade_proposta ? `${orcamento.validade_proposta} dias` : '15 dias'}
+                        </td>
+                        <td width="8"></td>
+                        <td class="stack" style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px;">
                           <strong>Frete:</strong> ${orcamento.opcao_frete || 'Frete CIF - Incluso'}
                         </td>
                         <td width="8"></td>
                         <td class="stack" style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px;">
-                          <strong>Validade:</strong> ${orcamento.validade_proposta ? `${orcamento.validade_proposta} dias` : '15 dias'}
-                        </td>
-                        <td width="8"></td>
-                        <td class="stack" style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px;">
-                          <strong>Prazo:</strong> ${orcamento.prazo_entrega ? `${orcamento.prazo_entrega} dias úteis` : '15 / 20 dias úteis'}
+                          <strong>Prazo de entrega:</strong> ${orcamento.prazo_entrega ? `${orcamento.prazo_entrega} dias úteis` : '15 / 20 dias úteis'}
                         </td>
                       </tr>
                     </table>
@@ -326,7 +326,7 @@ const generateEmailHTML = (orcamento: any, cliente: any, consultor: any, produto
                         </td>
                         <td width="8"></td>
                         <td class="stack" style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; vertical-align: top;">
-                          <strong>Pagamento</strong><br>
+                          <strong>Forma de Pagamento</strong><br>
                           ${orcamento.forma_pagamento || 'À vista ou parcelado'}
                         </td>
                       </tr>
@@ -370,7 +370,7 @@ const generateEmailHTML = (orcamento: any, cliente: any, consultor: any, produto
                 <tr>
                   <td style="padding: 12px 20px; font-size: 12px; color: #374151; text-align: center; border-top: 1px solid #e5e7eb;">
                     <strong>Equipe Natureza Brindes</strong><br>
-                    📞 (27) 3238-9726 | 📧 <a href="mailto:vendas02@cristalbrindes.com.br" style="color: #2563eb;">vendas02@cristalbrindes.com.br</a><br>
+                    📞 (27) 99958-6250 | 📧 <a href="mailto:vendas02@cristalbrindes.com.br" style="color: #2563eb;">vendas02@cristalbrindes.com.br</a><br>
                     CNPJ: 57.225.892/0001-46<br>
                     <span style="font-size: 10px; color: #6b7280;">11A RUA SILVA GRASIOL, 25 - MIRANTE DA PRAIA - CEP: 29.197.306 - FUNDÃO - ES</span>
                   </td>

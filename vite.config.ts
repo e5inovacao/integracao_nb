@@ -14,6 +14,22 @@ export default defineConfig({
     port: 5180,
     // Configurações de proxy para evitar problemas de CORS
     proxy: {
+      // Proxy para API backend Express
+      '/api': {
+        target: 'http://localhost:3005',
+        changeOrigin: true,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('Proxy error:', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Sending Request to the Target:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+          });
+        },
+      },
       // Proxy para requisições do Supabase se necessário
       '/supabase-proxy': {
         target: 'https://dntlbhmljceaefycdsbc.supabase.co',
@@ -34,13 +50,7 @@ export default defineConfig({
     }
   },
   plugins: [
-    react({
-      babel: {
-        plugins: [
-          'react-dev-locator',
-        ],
-      },
-    }),
+    react(),
     traeBadgePlugin({
       variant: 'dark',
       position: 'bottom-right',

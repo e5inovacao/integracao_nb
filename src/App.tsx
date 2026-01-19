@@ -29,6 +29,9 @@ import NovoEditor2 from './pages/NovoEditor2';
 import GestaoColaboradores from './pages/GestaoColaboradores';
 import Configuracoes from './pages/Configuracoes';
 import TabelaFator from './pages/TabelaFator';
+import TabelaFatorCopia from './pages/TabelaFatorCopia';
+import Pedidos from './pages/Pedidos';
+// Personalização removida
 
 function App() {
   return (
@@ -169,6 +172,9 @@ function App() {
           {/* Rota para visualização do orçamento */}
           <Route path="orcamento/:id" element={<OrcamentoView />} />
           
+          {/* Rota de Pedidos - Novo Módulo */}
+          <Route path="pedidos" element={<Pedidos />} />
+
           {/* Rota de Configurações - Apenas Admin */}
           <Route path="configuracoes" element={
             <ProtectedRoute requiredRole="admin">
@@ -182,6 +188,15 @@ function App() {
               <TabelaFator />
             </ProtectedRoute>
           } />
+
+          {/* Rota de Cópia de Fator - Apenas Admin */}
+          <Route path="fatores-copia" element={
+            <ProtectedRoute requiredRole="admin">
+              <TabelaFatorCopia />
+            </ProtectedRoute>
+          } />
+
+          {/* Personalizações removidas */}
           
           {/* Rota de teste para variações de produto */}
           <Route path="teste-produto-variacoes" element={<TesteProdutoVariacoes />} />

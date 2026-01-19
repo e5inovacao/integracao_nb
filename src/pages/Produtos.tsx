@@ -21,6 +21,7 @@ interface EcologicProduct {
   comprimento?: number
   peso?: number
   variacoes?: any
+  status_active?: boolean
 }
 
 export default function Produtos() {
@@ -46,8 +47,8 @@ export default function Produtos() {
     setLoading(true)
     try {
       let query = supabase
-        .from('ecologic_products_site')
-        .select('*', { count: 'exact' })
+        .from('ecologic_products')
+        .select('id, titulo, descricao, categoria, codigo, img_0, img_1, img_2', { count: 'exact' })
         .order('titulo')
 
       const termToSearch = searchQuery !== undefined ? searchQuery : searchTerm
@@ -243,10 +244,15 @@ export default function Produtos() {
                       {produto.codigo}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white"
-                      style={{backgroundColor: '#2CB20B'}}>
-                        Ativo
-                      </span>
+                      {produto.status_active ? (
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white" style={{backgroundColor: '#2CB20B'}}>
+                          Ativo
+                        </span>
+                      ) : (
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white" style={{backgroundColor: '#a1a1aa'}}>
+                          Inativo
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">

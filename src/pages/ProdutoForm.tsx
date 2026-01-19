@@ -131,10 +131,10 @@ export default function ProdutoForm() {
           produto_name: data.titulo || '',
           produto_ref: data.codigo || '',
           categoria: data.categoria || '',
-          fornecedor: '', // Mapear se houver campo equivalente; caso contrário, deixar vazio ou ajustar
+          fornecedor: '',
           produto_descricao: data.descricao || '',
-          produto_img: data.img_0 || '', // Assumindo img_0 como imagem principal; ajuste se necessário
-          status_ativa: 'ativo' // Mapear status se existir; default para 'ativo'
+          produto_img: data.img_0 || '',
+          status_ativa: data.status_active === false ? 'inativo' : 'ativo'
         });
   
         // Mapear variações (ajuste conforme estrutura real)
@@ -313,6 +313,7 @@ export default function ProdutoForm() {
       let produtoData;
       if (isEditing) {
         // Atualização com mapeamento para ecologic_products_site
+        const statusActiveBool = formData.status_ativa === 'ativo';
         const { data, error } = await supabase
           .from('ecologic_products_site')
           .update({
@@ -321,7 +322,8 @@ export default function ProdutoForm() {
             categoria: formData.categoria,
             descricao: formData.produto_descricao,
             img_0: formData.produto_img,
-            tipo: 'produto' // Adicionando campo obrigatório
+            tipo: 'produto',
+            status_active: statusActiveBool
           })
           .eq('id', id)
           .select()
@@ -334,6 +336,7 @@ export default function ProdutoForm() {
       // ... (lógica de variações aqui, mapeando para campos corretos)
       } else {
       // Inserção com mapeamento
+      const statusActiveBool = formData.status_ativa === 'ativo';
       const { data, error } = await supabase
         .from('ecologic_products_site')
         .insert({
@@ -342,7 +345,8 @@ export default function ProdutoForm() {
           categoria: formData.categoria,
           descricao: formData.produto_descricao,
           img_0: formData.produto_img,
-          tipo: 'produto' // Adicionando campo obrigatório
+          tipo: 'produto',
+          status_active: statusActiveBool
         })
         .select()
         .single();
@@ -474,14 +478,30 @@ export default function ProdutoForm() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Status
               </label>
-              <select
-                value={formData.status_ativa}
-                onChange={(e) => handleInputChange('status_ativa', e.target.value as 'ativo' | 'inativo')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="ativo">Ativo</option>
-                <option value="inativo">Inativo</option>
-              </select>
+            <select
+              value={formData.status_ativa}
+              onChange={async (e) => {
+                const value = e.target.value as 'ativo' | 'inativo';
+                handleInputChange('status_ativa', value);
+                if (isEditing && id) {
+                  try {
+                    const { error } = await supabase
+                      .from('ecologic_products_site')
+                      .update({ status_active: value === 'ativo' })
+                      .eq('id', id);
+                    if (error) throw error;
+                    toast.success(`Status atualizado para ${value}`);
+                  } catch (err) {
+                    console.error('Erro ao atualizar status do produto:', err);
+                    toast.error('Erro ao atualizar status');
+                  }
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ativo">Ativo</option>
+              <option value="inativo">Inativo</option>
+            </select>
             </div>
 
 

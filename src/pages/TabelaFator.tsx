@@ -35,6 +35,8 @@ export default function TabelaFator() {
   const [novasLinhas, setNovasLinhas] = useState<NovaLinha[]>([])
   const [loading, setLoading] = useState(false)
   const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [showNewTableForm, setShowNewTableForm] = useState(false)
+  const [newTableName, setNewTableName] = useState('')
 
   // Carregar resumo das tabelas
   const carregarTabelasResumo = async () => {
@@ -232,19 +234,39 @@ export default function TabelaFator() {
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Tabelas de Fator</h1>
           
-          {/* Botão Criar Nova Tabela */}
-          <button
-            onClick={() => {
-              const nomeTabela = prompt('Digite o nome da nova tabela de fator (ex: A, B, C):')
-              if (nomeTabela && nomeTabela.trim()) {
-                criarNovaTabela(nomeTabela.trim().toUpperCase())
-              }
-            }}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <PlusIcon className="w-4 h-4 mr-2" />
-            Nova Tabela de Fator
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowNewTableForm(v => !v)}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <PlusIcon className="w-4 h-4 mr-2" />
+              Nova Tabela de Fator
+            </button>
+            {showNewTableForm && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newTableName}
+                  onChange={e => setNewTableName(e.target.value)}
+                  placeholder="Ex: A, B, C"
+                  className="px-3 py-2 border rounded"
+                />
+                <button
+                  onClick={() => {
+                    const nome = newTableName.trim().toUpperCase()
+                    if (!nome) {
+                      toast.warning('Informe o nome da tabela')
+                      return
+                    }
+                    setShowNewTableForm(false)
+                    setNewTableName('')
+                    criarNovaTabela(nome)
+                  }}
+                  className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                >Criar</button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Cards das Tabelas */}
